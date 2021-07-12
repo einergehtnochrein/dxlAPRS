@@ -140,6 +140,9 @@ static char sondeudp_DATAFRAME = 'i';
 #define sondeudp_FLENMP3 49
 /* MP3H frame length */
 
+#define sondeudp_FLENS1 63
+/* S1 frame length */
+
 #define sondeudp_M10SYN 0x649F20 
 /* M10 sync */
 
@@ -525,6 +528,45 @@ struct MP3H {
    uint32_t configbaud;
 };
 
+static uint8_t sondeudp_EXORS1[64] = {
+    0x0F,0x70,0xB3,0x6F,0x43,0x98,0x48,0xAE,
+    0xBC,0x97,0x38,0x1D,0xD3,0xD4,0xA0,0x55,
+    0x7D,0x68,0x37,0x6D,0x60,0xBB,0xE3,0xCD,
+    0x35,0xC6,0x8B,0xFA,0x58,0xA6,0x30,0x19,
+    0x95,0x93,0xF6,0x92,0x6F,0xCB,0x50,0xA2,
+    0x76,0x5E,0xC3,0x54,0xE4,0x31,0x08,0x04,
+    0x46,0x47,0x56,0xC7,0x12,0xA3,0x67,0xCF,
+    0x16,0xE5,0x20,0x99,0xD1,0xF7,0x83,0xFE};
+
+typedef unsigned char S1BUF[63];
+
+
+struct S1 {
+   uint8_t enabled;
+   int32_t savecnt;
+   int32_t pllshift;
+   int32_t baudfine;
+   int id;
+   int sid;
+   float noise;
+   float bitlev;
+   float lastu;
+   char dateok;
+   char cbit;
+   char oldd;
+   char polarity;
+   char plld;
+   uint32_t blocktime;
+   uint32_t synword;
+   uint32_t rxb;
+   uint32_t rxp;
+   AFIRTAB afirtab;
+   uint32_t demodbaud;
+   uint32_t configbaud;
+   S1BUF rxbuf;
+};
+
+
 struct NONAMES;
 
 typedef struct NONAMES * pNONAMES;
@@ -576,6 +618,7 @@ struct CHAN {
    struct DFM6A dfm6a;
    struct IMETA imeta;
    struct MP3H mp3h;
+   struct S1 s1;
    pNONAMES nonames;
 };
 
@@ -1102,6 +1145,19 @@ static void Config(void)
          anonym5->rxp = 49UL; /* out of fram, wait for sync */
          anonym5->manchestd = 0L;
       }
+      { /* with */
+         struct S1 * anonym6 = &chan[c].s1;
+         anonym6->configbaud = 2400UL;
+         anonym6->demodbaud = (2UL*anonym6->configbaud*65536UL)/adcrate;
+         initafir(anonym6->afirtab, 0UL, 1900UL,
+                X2C_DIVR((float)chan[c].configequalizer,100.0f));
+         anonym6->baudfine = 0L;
+         anonym6->noise = 0.0f;
+         anonym6->bitlev = 0.0f;
+         anonym6->cbit = 0;
+         anonym6->polarity = 0;
+         anonym6->rxp = sondeudp_FLENS1; /* out of fram, wait for sync */
+      }
    } /* end for */
 } /* end Config() */
 
@@ -1132,6 +1188,7 @@ static void Parms(void)
    struct CHAN * anonym6;
    /* set only 1 chan */
    struct CHAN * anonym7;
+   struct S1 * anonym8;
    err = 0;
    abortonsounderr = 0;
    nosendsdr = 0;
@@ -1202,6 +1259,11 @@ static void Parms(void)
          anonym6->configequalizer = 0L;
          anonym6->udptx = 0;
          anonym6->mycallc = 0UL;
+      }
+      { /* with */
+         struct S1 * anonym8 = &chan[channel].s1;
+         anonym8->enabled = sondeudp_SLEEP;
+         anonym8->pllshift = 1024L;
       }
    } /* end for */
    channel = 0UL;
@@ -5556,13 +5618,13 @@ static void mp3id(uint32_t m, char ser, char id[],
 } /* end mp3id() */
 
 
-static uint32_t mp3time(char b[], uint32_t b_len)
+static uint32_t mp3time(const char b[], uint32_t b_len)
 {
    uint32_t mp3time_ret;
    X2C_PCOPY((void **)&b,b_len);
    mp3time_ret = cardmsb(b, b_len, 1UL, 1UL)*3600UL+cardmsb(b, b_len, 2UL,
                 1UL)*60UL+cardmsb(b, b_len, 3UL, 1UL);
-   X2C_PFREE(b);
+   X2C_PFREE((void *)b);
    return mp3time_ret;
 } /* end mp3time() */
 
@@ -6000,6 +6062,414 @@ static void Fskmp3(uint32_t m)
    }
 } /* end Fskmp3() */
 
+/*---------------------- Windsond S1 */
+
+
+#define sondeudp_POLYS1 0x8408
+
+
+static char crcs1(const unsigned char b[], uint32_t b_len)
+{
+    uint32_t j;
+    uint32_t i;
+    uint16_t crc;
+    uint16_t rxcrc;
+
+    crc = 0xFFFFU;
+    for (i = 0; i < b_len - 2; i++) {
+        for (j = 0; j < 8; j++) {
+            int bit = (crc & 1) ^ ((b[i] >> j) & 1);
+            if (bit) {
+                crc = (crc >> 1) ^ sondeudp_POLYS1;
+            }
+            else {
+                crc = (crc >> 1);
+            }
+        }
+
+        uint16_t rxcrc = (b[i+1] * 256) + b[i+2];
+        if (crc == rxcrc) {
+            return 1;
+        }
+    }
+
+    return 0;
+} /* end crcs1() */
+
+
+
+static void s1id(uint32_t m, char ser, char id[],
+                uint32_t id_len)
+{
+   id[0UL] = 0;
+   { /* with */
+        struct S1 * anonym = &chan[m].s1;
+        if (ser) {
+            /*serial */
+            aprsstr_Assign(id, id_len, "WS0000000", 9ul);
+        }
+        else {
+            /*aprs */
+            aprsstr_Assign(id, id_len, "WS0000000", 9ul);
+        }
+    }
+}
+
+
+static uint32_t readbitss1 (const unsigned char rxbuf[], int *startpos, int n)
+{
+    uint32_t data = 0;
+    for (int i = 0; i < n; i++) {
+        uint32_t by = rxbuf[3 + ((*startpos + i) / 8)];
+        uint32_t bi = (by >> (7 - (*startpos + i) % 8)) & 1;
+        data = 2 * data + bi;
+    }
+
+    *startpos += n;
+
+    return data;
+}
+
+
+static void shows1(uint32_t m, uint32_t state, uint32_t repaired,
+                const unsigned char rxbuf[], uint32_t rxbuf_len)
+{
+   uint32_t i;
+   double clb;
+   double dir;
+   double kmh;
+   double heig;
+   double long0;
+   double lat;
+   char done;
+   char s[21];
+   done = 0;
+
+    if (state==1UL) {
+        /* crc good */
+        WrChan((int32_t)m);
+        osi_WrStr("S1 ", 5ul);
+
+        /* Only print meteo frames */
+        int opcode = rxbuf[1] & 0x0F;
+        if (opcode == 0x0C) {
+            osi_WrStr("[#MET: ",7);
+
+            int nbits = rxbuf[2];
+            int haveID = (rxbuf[1] & 0xF0) == 0;
+            int flags = rxbuf[3];
+            int startpos = 8;
+            uint32_t dummy;
+
+            osi_WrStr("n=", 2);
+            osi_WrInt(nbits, 3);
+
+            readbitss1(rxbuf, &startpos, 4);  // unknown 4 bits
+            if (haveID) {
+                uint32_t id = readbitss1(rxbuf, &startpos, 12); // id
+                osi_WrStr(",id=", 4);
+                osi_WrInt(id, 1);
+            }
+
+            int haveGPS = (rxbuf[3] >> 7) & 1;
+
+            dummy = readbitss1(rxbuf, &startpos, 4);  // probably "md"
+            osi_WrStr(",md=", 4);
+            osi_WrInt(dummy, 1);
+            readbitss1(rxbuf, &startpos, 1);  // some flag
+
+            int32_t tebits = readbitss1(rxbuf, &startpos, 13);
+            if ((tebits >> 12) & 1) {
+                tebits -= 8192;
+            }
+            float te = (tebits - 1000.0f) / 100.0f;
+            osi_WrStr(",te=", 4);
+            osi_WrFixed(te, 2, 6);
+
+            dummy = readbitss1(rxbuf, &startpos, 2);
+            if (dummy == 1) {
+                dummy = readbitss1(rxbuf, &startpos, 1);
+                if (dummy == 1) {
+                    uint32_t teibits = readbitss1(rxbuf, &startpos, 8);
+                    float tei = teibits * 0.25f;
+                    osi_WrStr(",tei=", 5);
+                    osi_WrFixed(tei, 2, 6);
+                }
+            }
+
+            if ((rxbuf[0] == 0x04) || (rxbuf[0] == 0x45)) {
+                readbitss1(rxbuf, &startpos, 11);  // ?
+            }
+
+            uint32_t pabits = readbitss1(rxbuf, &startpos, 16);
+            float pa = (pabits * 2) / 100.0f;
+            osi_WrStr(",pa=", 4);
+            osi_WrFixed(pa, 2, 6);
+
+            if (haveGPS) {
+                uint32_t sel = readbitss1(rxbuf, &startpos, 2);
+                if (sel == 3) {
+                    sel = 2*sel + readbitss1(rxbuf, &startpos, 1);
+                    if (sel == 6) {
+                        uint32_t altbits = readbitss1(rxbuf, &startpos, 14);
+                        float alt = altbits;
+                        osi_WrStr(",alt=", 5);
+                        osi_WrFixed(alt, 0, 6);
+                    }
+                }
+                if ((sel == 2) || (sel == 6)) {
+                    readbitss1(rxbuf, &startpos, 11);  // spd?
+                    readbitss1(rxbuf, &startpos, 12);
+                    sel = readbitss1(rxbuf, &startpos, 3);
+                    if (sel == 3) {
+                        uint32_t latbits = readbitss1(rxbuf, &startpos, 28);
+                        uint32_t latdeg = (latbits - 90000000ul) / 1000000ul;
+                        float latmin = (latbits - 90000000ul - 1000000ul*latdeg) / 10000.0f;
+                        float lat = latdeg + latmin / 60.0f;
+                        osi_WrStr(",lat=", 5);
+                        osi_WrFixed(lat, 4, 8);
+
+                        uint32_t lonbits = readbitss1(rxbuf, &startpos, 29);
+                        uint32_t londeg = (lonbits - 180000000ul) / 1000000ul;
+                        float lonmin = (lonbits - 180000000ul - 1000000ul*londeg) / 10000.0f;
+                        float lon = londeg + lonmin / 60.0f;
+                        osi_WrStr(",lon=", 5);
+                        osi_WrFixed(lon, 4, 8);
+                    }
+                }
+            }
+            osi_WrStr("] ",2);
+        }
+
+      if (verb2) {
+         for (i = 0UL; i<=48UL; i++) {
+            if (i%25UL==0UL) osi_WrStrLn("", 1ul);
+            osi_WrHex((uint32_t)(uint8_t)rxbuf[i], 3UL);
+         } /* end for */
+      }
+      done = 1;
+   }
+   if (done) {
+      WrdB(chan[m].admax-chan[m].admin);
+      WrQuali(noiselevel(chan[m].s1.bitlev, chan[m].s1.noise));
+      osi_WrStrLn("", 1ul);
+   }
+} /* end showmp3() */
+
+
+static void decodeframes1(uint32_t m, const char buf[],
+                uint32_t buf_len)
+{
+    uint32_t flen;
+    uint32_t i;
+    char name[21];
+    char s[201];
+    struct S1 * anonym;
+    struct CHAN * anonym0; /* call if set */
+    { /* with */
+        struct S1 * anonym = &chan[m].s1;
+        setactiv(&anonym->savecnt, 30L);
+        memset(name, 0, sizeof(name));
+
+        s1id(m, 0, name, sizeof(name));
+
+        if (name[0U]) {
+            memset((char *)s,(char)0,sizeof(s)); /* end of block is 0 */
+            for (i = 0UL; i<=8UL; i++) {
+                s[i+7UL] = name[i];
+            } /* end for */
+            { /* with */
+                struct CHAN * anonym0 = &chan[m];
+                s[0U] = (char)(anonym0->mycallc/16777216UL);
+                s[1U] = (char)(anonym0->mycallc/65536UL&255UL);
+                s[2U] = (char)(anonym0->mycallc/256UL&255UL);
+                s[3U] = (char)(anonym0->mycallc&255UL);
+                if (anonym0->mycallc>0UL) {
+                    s[4U] = anonym0->myssid;
+                }
+                else {
+                    s[4U] = '\020';
+                }
+                s[5U] = 0;
+                s[6U] = 0;
+            }
+            for (i = 0UL; i<buf_len; i++) {
+                s[i+20UL] = buf[i]; /* payload */
+            } /* end for */
+            flen = 20u+buf_len;
+            sdrparm(s, sizeof(s), &flen, (int32_t)m);
+            alludp(chan[m].udptx, flen, s, sizeof(s));
+        }
+        monitor(m, "S1", 4ul, name, 21ul);
+    }
+} /* end decodeframes1() */
+
+
+static void repairs1(uint32_t m)
+{
+   uint32_t rprcnt;
+   uint32_t done;
+   uint32_t cnt;
+   uint32_t max0;
+   uint32_t k;
+   uint32_t j;
+   uint32_t i;
+   uint32_t tlast;
+   uint32_t t;
+   char ch;
+   uint32_t tmp;
+   uint32_t tmp0;
+#define DATLEN_S1 32
+   char rxdat[DATLEN_S1];
+   t = osic_time();
+
+
+    struct S1 * anonym = &chan[m].s1;
+    done = 0UL;
+
+    /* Decode Golay code words */
+    
+    unsigned char *p = anonym->rxbuf;
+    for (i = 0; i < sondeudp_FLENS1; i+=3) {
+        uint32_t cw = (p[i+0] << 16) | (p[i+1] << 8) | (p[i+2] << 0);
+        // Do the decoding here...
+        if ((i % 2) == 0) {
+            rxdat[(i / 2) + 0] = (cw >> 16) & 0xFF;
+            rxdat[(i / 2) + 1] = ((cw >> 12) & 0x0F) << 4;
+        }
+        else {
+            rxdat[(i / 2) + 0] |= (cw >> 20) & 0x0F;
+            rxdat[(i / 2) + 1] = (cw >> 12) & 0xFF;
+        }
+    }
+
+    /* Search for valid CRC. Last byte of rxdat is not relevant */
+    if (crcs1(rxdat, DATLEN_S1 - 1)) {
+        done = 2UL;
+    }
+    else {
+        /*- got a crc error frame */
+        done = 1UL;
+    }
+    if (done>=2UL) {
+        /* good or repaired frame */
+        /* new block */
+        anonym->blocktime = t;
+        decodeframes1(m, rxdat, DATLEN_S1);
+        if (verb) {
+            shows1(m, 1UL, rprcnt, rxdat, DATLEN_S1);
+        }
+        else if (verb) {
+            shows1(m, 2UL, rprcnt, rxdat, DATLEN_S1);
+        }
+    }
+    if (verb && done==1UL) {
+//        osi_WrStrLn("frame error", 12);
+        shows1(m, 0UL, rprcnt, rxdat, DATLEN_S1);
+    }
+} /* end repairs1() */
+
+static uint32_t sondeudp_SYNWORDS1 = 0x5552DUL;
+
+static uint32_t sondeudp_SYNWORDS1REV = 0xAAAD2UL;
+
+
+static void demodbytes1(uint32_t m, char d)
+{
+   struct S1 * anonym;
+   { /* with */
+      struct S1 * anonym = &chan[m].s1;
+      anonym->synword = anonym->synword*2UL+(uint32_t)d;
+      if (anonym->rxp>=sondeudp_FLENS1) {
+         /* out of frame */
+         if (((uint32_t)anonym->synword&0xFFFFFUL)==sondeudp_SYNWORDS1) {
+            anonym->rxp = 0UL;
+         }
+         else if (((uint32_t)anonym->synword&0xFFFFFUL)==sondeudp_SYNWORDS1REV) {
+            anonym->polarity = !anonym->polarity;
+            anonym->rxp = 0UL;
+         }
+      }
+      else {
+         ++anonym->rxb;
+         if (anonym->rxb>=8UL) {
+            anonym->rxb = 0UL;
+            anonym->rxbuf[anonym->rxp] = anonym->synword ^ sondeudp_EXORS1[anonym->rxp % 64];
+            ++anonym->rxp;
+            if (anonym->rxp == sondeudp_FLENS1) {
+                repairs1(m);
+            }
+         }
+      }
+   }
+} /* end demodbytes1() */
+
+
+static void demodbits1(uint32_t m, float u, float u0)
+{
+   char d;
+   float ua;
+   struct S1 * anonym;
+   d = u>=u0;
+   { /* with */
+        struct S1 * anonym = &chan[m].s1;
+        /*=polarity*/
+        demodbytes1(m, d==anonym->polarity);
+        /*quality*/
+        ua = (float)fabs(u-u0)-anonym->bitlev;
+        anonym->bitlev = anonym->bitlev+ua*0.005f;
+        anonym->noise = anonym->noise+((float)fabs(ua)-anonym->noise)
+            *0.02f;
+   }
+/*quality*/
+} /* end demodbitmp3() */
+
+
+static void demods1(float u, uint32_t m)
+{
+   char d;
+   struct S1 * anonym;
+   { /* with */
+      struct S1 * anonym = &chan[m].s1;
+      d = u>=0.0f;
+      if (anonym->cbit) {
+         demodbits1(m, u, anonym->lastu);
+         if (d!=anonym->oldd) {
+            if (d==anonym->plld) anonym->baudfine += anonym->pllshift;
+            else anonym->baudfine -= anonym->pllshift;
+            anonym->oldd = d;
+         }
+         anonym->lastu = u;
+      }
+      else anonym->plld = d;
+      anonym->cbit = !anonym->cbit;
+   }
+} /* end demods1() */
+
+
+static void Fsks1(uint32_t m)
+{
+   float ff;
+   int32_t lim;
+   struct S1 * anonym;
+
+   { /* with */
+      struct S1 * anonym = &chan[m].s1;
+      lim = (int32_t)anonym->demodbaud;
+      for (;;) {
+         if (anonym->baudfine>=65536L) {
+            anonym->baudfine -= 65536L;
+            ff = Fir(afin, (uint32_t)((anonym->baudfine&65535L)/4096L),
+                16UL, chan[m].afir, 32ul, anonym->afirtab, 512ul);
+            demods1(ff, m);
+         }
+         anonym->baudfine += lim;
+         lim = 0L;
+         if (anonym->baudfine<131072L) break;
+      }
+   }
+} /* end Fsks1() */
+
 /*---------------------- */
 #define sondeudp_CRCINIT 0x0FFFFFFFF
 
@@ -6167,6 +6637,7 @@ static void cpusave(int32_t savelev, uint32_t chans)
          sdec(savelev, anonym->imeta.enabled, &anonym->imeta.savecnt, 2L);
          sdec(savelev, anonym->m10.enabled, &anonym->m10.savecnt, 1L);
          sdec(savelev, anonym->mp3h.enabled, &anonym->mp3h.savecnt, 1L);
+         sdec(savelev, anonym->s1.enabled, &anonym->s1.savecnt, 1L);
       }
       if (c==tmp) break;
    } /* end for */
@@ -6309,6 +6780,8 @@ static void getadc(void)
             }
             if (anonym->m10.savecnt>0L) Fsk10(c);
             if (anonym->mp3h.savecnt>0L) Fskmp3(c);
+            anonym->s1.savecnt=1;
+            if (anonym->s1.savecnt>0L) Fsks1(c);
          }
       }
       if (c==tmp) break;

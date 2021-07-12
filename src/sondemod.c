@@ -344,6 +344,28 @@ struct CONTEXTMP3 {
    float alt;
 };
 
+struct CONTEXTS1;
+
+typedef struct CONTEXTS1 * pCONTEXTS1;
+
+
+struct CONTEXTS1 {
+   pCONTEXTS1 next;
+   OBJNAME name;
+   char ser[21];
+   char posok;
+   char framesent;
+   int id;
+   int sid;
+   uint32_t tused;
+   double lat;
+   double lon;
+   float speed;
+   float clb;
+   float dir;
+   float alt;
+};
+
 struct DFMTYPES;
 
 typedef struct DFMTYPES * pDFMTYPES;
@@ -408,6 +430,8 @@ static pCONTEXTM10 pcontextm10;
 static pCONTEXTIMET pcontextimet;
 
 static pCONTEXTMP3 pcontextmp3;
+
+static pCONTEXTS1 pcontexts1;
 
 static struct sondeaprs_SDRBLOCK sdrblock;
 
@@ -3308,7 +3332,7 @@ static float getcal(pCONTEXTR4 pc, uint32_t p)
 } /* end getcal() */
 
 
-static uint32_t getcard(char rxb[], uint32_t rxb_len, uint32_t p,
+static uint32_t getcard(const char rxb[], uint32_t rxb_len, uint32_t p,
                 uint32_t bytes)
 {
    uint32_t i;
@@ -4760,6 +4784,259 @@ static void decodemp3(const char rxb[], uint32_t rxb_len,
 } /* end decodemp3() */
 
 
+
+
+#define sondeudp_POLYS1 0x8408
+
+
+static char crcs1(const unsigned char b[], uint32_t b_len)
+{
+    uint32_t j;
+    uint32_t i;
+    uint16_t crc;
+    uint16_t rxcrc;
+
+    crc = 0xFFFFU;
+    for (i = 0; i < b_len - 2; i++) {
+        for (j = 0; j < 8; j++) {
+            int bit = (crc & 1) ^ ((b[i] >> j) & 1);
+            if (bit) {
+                crc = (crc >> 1) ^ sondeudp_POLYS1;
+            }
+            else {
+                crc = (crc >> 1);
+            }
+        }
+
+        uint16_t rxcrc = (b[i+1] * 256) + b[i+2];
+        if (crc == rxcrc) {
+            return 1;
+        }
+    }
+
+    return 0;
+} /* end crcs1() */
+
+
+static uint32_t readbitss1 (const unsigned char rxbuf[], int *startpos, int n)
+{
+    uint32_t data = 0;
+    for (int i = 0; i < n; i++) {
+        uint32_t by = rxbuf[3 + ((*startpos + i) / 8)];
+        uint32_t bi = (by >> (7 - (*startpos + i) % 8)) & 1;
+        data = 2 * data + bi;
+    }
+
+    *startpos += n;
+
+    return data;
+}
+
+
+static void decodes1(const unsigned char rxb[], uint32_t rxb_len,
+                uint32_t ip, uint32_t fromport)
+{
+   uint32_t i;
+    double clb;
+   double dir;
+   double kmh;
+    double alt;
+    double lon;
+    double lat;
+    double temperature;
+    double pressure;
+   char s[101];
+    OBJNAME nam;
+    CALLSSID usercall;
+   char nameok;
+    pCONTEXTS1 pc0;
+    pCONTEXTS1 pc1;
+    pCONTEXTS1 pc;
+    pc = 0;
+    lat = 0.0;
+    lon = 0.0;
+    clb = 0.1;
+
+
+    getcall(rxb, rxb_len, usercall, 11ul);
+    if (usercall[0U]==0) {
+        aprsstr_Assign(usercall, 11ul, mycall, 100ul);
+    }
+    if (sondeaprs_verb && fromport>0UL) {
+        osi_WrStr("UDP:", 5ul);
+        aprsstr_ipv4tostr(ip, s, 101ul);
+        osi_WrStr(s, 101ul);
+        osi_WrStr(":", 2ul);
+        osic_WrINT32(fromport, 1UL);
+        if (usercall[0U]) {
+            osi_WrStr(" (", 3ul);
+            osi_WrStr(usercall, 11ul);
+            osi_WrStr(")", 2ul);
+        }
+        osi_WrStrLn("", 1ul);
+    }
+
+    nameok = 1;
+    for (i = 0UL; i<=8UL; i++) {
+        nam[i] = rxb[7UL+i];
+        if ((i<8UL || nam[i]) && ((uint8_t)nam[i]<=' ' || (uint8_t)nam[i]>'Z')) {
+            nameok = 0;
+        }
+    } /* end for */
+
+    pc = pcontexts1;
+    pc0 = 0;
+    for (;;) {
+        if (pc==0) break;
+        pc1 = pc->next;
+        if (pc->tused+3600UL<systime) {
+            /* timed out */
+            if (pc0==0) {
+                pcontexts1 = pc1;
+            }
+            else {
+                pc0->next = pc1;
+            }
+            osic_free((char * *) &pc, sizeof(struct CONTEXTS1));
+        }
+        else {
+            if (aprsstr_StrCmp(nam, 9ul, pc->name, 9ul)) break;
+            pc0 = pc;
+        }
+        pc = pc1;
+    }
+
+    if (pc==0) {
+        osic_alloc((char * *) &pc, sizeof(struct CONTEXTS1));
+        if (pc==0) {
+            Error("allocate context out of memory", 31ul);
+        }
+        memset((char *)pc,(char)0,sizeof(struct CONTEXTS1));
+        pc->next = pcontexts1;
+        pcontexts1 = pc;
+        aprsstr_Assign(pc->name, 9ul, nam, 9ul);
+        if (sondeaprs_verb) {
+            osi_WrStrLn("is new ", 8ul);
+        }
+    }
+   
+    if (sondeaprs_verb) {
+        osi_WrStr("WS ", 5ul);
+        osi_WrStr(nam, 9ul);
+        osi_WrStr(" ", 2ul);
+    }
+
+    if (crcs1(&rxb[20], rxb_len-20)) {
+
+        if (pc->id > -1) {
+//            aprsstr_CardToStr(pc->id, 1UL, pc->ser, 21ul);
+            aprsstr_CardToStr(pc->id, 1UL, s, 101ul);
+            aprsstr_Append(pc->ser, 21ul, s, 101ul);
+        }
+
+        const unsigned char *rxbuf = &rxb[20];
+
+        /* Only print meteo frames */
+        int opcode = rxbuf[1] & 0x0F;
+        if (opcode == 0x0C) {
+            int nbits = rxbuf[2];
+            int haveID = (rxbuf[1] & 0xF0) == 0;
+            int flags = rxbuf[3];
+            int startpos = 8;
+            uint32_t dummy;
+
+            readbitss1(rxbuf, &startpos, 4);  // unknown 4 bits
+            if (haveID) {
+                pc->id = readbitss1(rxbuf, &startpos, 12); // id
+            }
+            else {
+                pc->id = -1;
+            }
+
+            int haveGPS = (rxbuf[3] >> 7) & 1;
+
+            readbitss1(rxbuf, &startpos, 4);  // probably "md"
+            readbitss1(rxbuf, &startpos, 1);  // some flag
+
+            int32_t tebits = readbitss1(rxbuf, &startpos, 13);
+            temperature = (tebits - 1000.0) / 100.0;
+
+            dummy = readbitss1(rxbuf, &startpos, 2);
+            if (dummy == 1) {
+                dummy = readbitss1(rxbuf, &startpos, 1);
+                if (dummy == 1) {
+                    readbitss1(rxbuf, &startpos, 8);  // tei?
+                }
+            }
+
+            if ((rxbuf[0] == 0x04) || (rxbuf[0] == 0x45)) {
+                readbitss1(rxbuf, &startpos, 11);  // ?
+            }
+
+            uint32_t pabits = readbitss1(rxbuf, &startpos, 16);
+            pressure = (pabits * 2) / 100.0;
+
+            if (haveGPS) {
+                uint32_t sel = readbitss1(rxbuf, &startpos, 2);
+                if (sel == 3) {
+                    sel = 2*sel + readbitss1(rxbuf, &startpos, 1);
+                    if (sel == 6) {
+                        uint32_t altbits = readbitss1(rxbuf, &startpos, 14);
+                        alt = altbits;
+                    }
+                }
+                if ((sel == 2) || (sel == 6)) {
+                    readbitss1(rxbuf, &startpos, 11);  // spd?
+                    readbitss1(rxbuf, &startpos, 12);
+                    sel = readbitss1(rxbuf, &startpos, 3);
+                    if (sel == 3) {
+                        uint32_t latbits = readbitss1(rxbuf, &startpos, 28);
+                        uint32_t latdeg = (latbits - 90000000ul) / 1000000ul;
+                        float latmin = (latbits - 90000000ul - 1000000ul*latdeg) / 10000.0f;
+                        lat = (latdeg + latmin / 60.0) * (3.1415926535 / 180.0);
+
+                        uint32_t lonbits = readbitss1(rxbuf, &startpos, 29);
+                        uint32_t londeg = (lonbits - 180000000ul) / 1000000ul;
+                        float lonmin = (lonbits - 180000000ul - 1000000ul*londeg) / 10000.0f;
+                        lon = (londeg + lonmin / 60.0) * (3.1415926535 / 180.0);
+                    }
+                }
+            }
+
+            if (sondeaprs_verb) {
+                osi_WrStr(" t=", 4ul);
+                osic_WrFixed((float)temperature, 1L, 1UL);
+                osi_WrStr("C", 2ul);
+
+                osi_WrStr(" p=", 4ul);
+                osic_WrFixed((float)pressure, 2L, 1UL);
+                osi_WrStr("hPa", 4ul);
+            }
+        }
+    }
+    else if (sondeaprs_verb) {
+        osi_WrStr(" crc err", 9ul);
+    }
+
+    if ((pc && nameok) && (lat != 0.0) && (lon != 0.0)) {
+        sondeaprs_senddata(lat, lon, alt, kmh*2.7777777777778E-1, dir, clb,
+                0.0, (double)X2C_max_real, (double)X2C_max_real,
+                0.0, 0.0, 0.0, 0.0,
+                (double) -(float)(uint32_t)sendmhzfromsdr, 0.0,
+                0.0, 0, 0UL, pc->name, 9ul, 0UL, 0, 0UL, 0.0,
+                usercall, 11ul, 0UL, (double)X2C_max_real,
+                sondeaprs_nofilter, 1, 0L, "WS", 4ul, pc->ser, 21ul,
+                sdrblock);
+        pc->framesent = 1;
+    }
+
+    if (sondeaprs_verb) {
+        wrsdr();
+        osi_WrStrLn("", 1ul);
+    }
+} /* end decodes1() */
+
+
 static char readsdrdata(char b[], uint32_t b_len,
                 int32_t * len, struct sondeaprs_SDRBLOCK * sdr)
 {
@@ -4859,6 +5136,10 @@ static void udprx(void)
          }
          if (len==69L) {
             decodemp3(chan[sondemod_LEFT].rxbuf, 560ul, ip, fromport);
+            break;
+         }
+         if (len==52) {
+            decodes1((const unsigned char *)chan[sondemod_LEFT].rxbuf, 560ul, ip, fromport);
             break;
          }
          if (done || !readsdrdata(chan[sondemod_LEFT].rxbuf, 560ul, &len,

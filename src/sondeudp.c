@@ -6101,20 +6101,67 @@ static char crcs1(const unsigned char b[], uint32_t b_len)
 static void s1id(uint32_t m, char ser, char id[],
                 uint32_t id_len)
 {
+   char s[21];
+   uint32_t n;
+
    id[0UL] = 0;
    { /* with */
         struct S1 * anonym = &chan[m].s1;
-        if (ser) {
-            /*serial */
-            aprsstr_Assign(id, id_len, "WS0000000", 9ul);
+        if (anonym->id > -1) {
+            if (ser) {
+                /*serial */
+                aprsstr_Assign(id, id_len, "S1-", 5ul);
+                aprsstr_CardToStr(anonym->id, 1UL, s, sizeof(s));
+                aprsstr_Append(id, id_len, s, sizeof(s));
+            }
+            else {
+                /*aprs */
+                aprsstr_Assign(id, id_len, "WS", 9ul);
+                n = anonym->id;
+                s[0U] = '0';
+                s[1U] = hex(n/1048576UL);
+                s[2U] = hex(n/65536UL);
+                s[3U] = hex(n/4096UL);
+                s[4U] = hex(n/256UL);
+                s[5U] = hex(n/16UL);
+                s[6U] = hex(n);
+                s[7U] = 0;
+                aprsstr_Append(id, id_len, s, sizeof(s));
+            }
+        }
+        else if (anonym->sid > -1) {
+            if (ser) {
+                /*serial */
+                aprsstr_Assign(id, id_len, "S1-s", 5ul);
+                aprsstr_CardToStr(anonym->id, 1UL, s, sizeof(s));
+                aprsstr_Append(id, id_len, s, sizeof(s));
+            }
+            else {
+                /*aprs */
+                aprsstr_Assign(id, id_len, "WSS", 9ul);
+                n = anonym->id;
+                s[0U] = hex(n/1048576UL);
+                s[1U] = hex(n/65536UL);
+                s[2U] = hex(n/4096UL);
+                s[3U] = hex(n/256UL);
+                s[4U] = hex(n/16UL);
+                s[5U] = hex(n);
+                s[6U] = 0;
+                aprsstr_Append(id, id_len, s, sizeof(s));
+            }
         }
         else {
-            /*aprs */
-            aprsstr_Assign(id, id_len, "WS0000000", 9ul);
+            if (ser) {
+                /*serial */
+                aprsstr_Assign(id, id_len, "S1-XXX", 5ul);
+            }
+            else {
+                /*aprs */
+                aprsstr_Assign(id, id_len, "WSXXXXXXX", 9ul);
+            }
         }
     }
 }
-
 
 static uint32_t readbitss1 (const unsigned char rxbuf[], int *startpos, int n)
 {

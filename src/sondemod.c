@@ -4838,8 +4838,8 @@ static void decodes1(const unsigned char rxb[], uint32_t rxb_len,
 {
    uint32_t i;
     double clb;
-   double dir;
-   double kmh;
+    double dir;
+    double kmh;
     double alt;
     double lon;
     double lat;
@@ -4849,6 +4849,7 @@ static void decodes1(const unsigned char rxb[], uint32_t rxb_len,
     OBJNAME nam;
     CALLSSID usercall;
    char nameok;
+    int opcode;
     pCONTEXTS1 pc0;
     pCONTEXTS1 pc1;
     pCONTEXTS1 pc;
@@ -4876,69 +4877,84 @@ static void decodes1(const unsigned char rxb[], uint32_t rxb_len,
         osi_WrStrLn("", 1ul);
     }
 
-    nameok = 1;
-    for (i = 0UL; i<=8UL; i++) {
-        nam[i] = rxb[7UL+i];
-        if ((i<8UL || nam[i]) && ((uint8_t)nam[i]<=' ' || (uint8_t)nam[i]>'Z')) {
-            nameok = 0;
-        }
-    } /* end for */
-
-    pc = pcontexts1;
-    pc0 = 0;
-    for (;;) {
-        if (pc==0) break;
-        pc1 = pc->next;
-        if (pc->tused+3600UL<systime) {
-            /* timed out */
-            if (pc0==0) {
-                pcontexts1 = pc1;
+    if (crcs1(&rxb[20], rxb_len-20)) {
+        /* Pointer to frame payload */
+        const unsigned char *rxbuf = &rxb[20];
+        opcode = rxbuf[1] & 0x0F;
+        int id = -1;
+        int sid = -1;
+        nam[0] = 0;
+        nameok = 0;
+        if (opcode == 0x0C) { /* Meteo frame */
+            int startpos = 8;
+            if ((rxbuf[1] & 0xF0) == 0) {
+                readbitss1(rxbuf, &startpos, 4);  // unknown 4 bits
+                id = readbitss1(rxbuf, &startpos, 12); // id
+                aprsstr_CardToStr(id, 1UL, nam, sizeof(nam));
+                nameok = 1;
             }
             else {
-                pc0->next = pc1;
+                sid = readbitss1(rxbuf, &startpos, 4); // sid
+                nam[0]='W';
+                nam[1]='S';
+                nam[2]='S';
+                aprsstr_CardToStr(sid, 1UL, &nam[3], sizeof(nam)-3);
+                nameok = 1;
             }
-            osic_free((char * *) &pc, sizeof(struct CONTEXTS1));
-        }
-        else {
-            if (aprsstr_StrCmp(nam, 9ul, pc->name, 9ul)) break;
-            pc0 = pc;
-        }
-        pc = pc1;
-    }
-
-    if (pc==0) {
-        osic_alloc((char * *) &pc, sizeof(struct CONTEXTS1));
-        if (pc==0) {
-            Error("allocate context out of memory", 31ul);
-        }
-        memset((char *)pc,(char)0,sizeof(struct CONTEXTS1));
-        pc->next = pcontexts1;
-        pcontexts1 = pc;
-        aprsstr_Assign(pc->name, 9ul, nam, 9ul);
-        if (sondeaprs_verb) {
-            osi_WrStrLn("is new ", 8ul);
-        }
-    }
-   
-    if (sondeaprs_verb) {
-        osi_WrStr("WS ", 5ul);
-        osi_WrStr(nam, 9ul);
-        osi_WrStr(" ", 2ul);
-    }
-
-    if (crcs1(&rxb[20], rxb_len-20)) {
-
-        if (pc->id > -1) {
-//            aprsstr_CardToStr(pc->id, 1UL, pc->ser, 21ul);
-            aprsstr_CardToStr(pc->id, 1UL, s, 101ul);
-            aprsstr_Append(pc->ser, 21ul, s, 101ul);
         }
 
-        const unsigned char *rxbuf = &rxb[20];
+        /* Only care about meteo frames */
+        if (nameok && (opcode == 0x0C)) {
+            pc = pcontexts1;
+            pc0 = 0;
+            for (;;) {
+                if (pc==0) break;
+                pc1 = pc->next;
+                if (pc->tused+3600UL<systime) {
+                    /* timed out */
+                    if (pc0==0) {
+                        pcontexts1 = pc1;
+                    }
+                    else {
+                        pc0->next = pc1;
+                    }
+                    osic_free((char * *) &pc, sizeof(struct CONTEXTS1));
+                }
+                else {
+                    if (aprsstr_StrCmp(nam, 9ul, pc->name, 9ul)) break;
+                    pc0 = pc;
+                }
+                pc = pc1;
+            }
 
-        /* Only print meteo frames */
-        int opcode = rxbuf[1] & 0x0F;
-        if (opcode == 0x0C) {
+            if (pc==0) {
+                osic_alloc((char * *) &pc, sizeof(struct CONTEXTS1));
+                if (pc==0) {
+                    Error("allocate context out of memory", 31ul);
+                }
+                memset((char *)pc,(char)0,sizeof(struct CONTEXTS1));
+                pc->next = pcontexts1;
+                pcontexts1 = pc;
+                aprsstr_Assign(pc->name, 9ul, nam, 9ul);
+                if (sondeaprs_verb) {
+                    osi_WrStrLn("is new ", 8ul);
+                }
+            }
+
+            if (nameok && sondeaprs_verb) {
+                osi_WrStr("WS ", 5ul);
+                osi_WrStr(nam, 9ul);
+                osi_WrStr(" ", 2ul);
+            }
+
+            pc->tused = systime;
+
+            if (pc->id > -1) {
+                aprsstr_CardToStr(pc->id, 1UL, pc->ser, sizeof(pc->ser));
+                aprsstr_CardToStr(pc->id, 1UL, s, 101ul);
+                aprsstr_Append(pc->ser, sizeof(pc->ser), s, 101ul);
+            }
+
             int nbits = rxbuf[2];
             int haveID = (rxbuf[1] & 0xF0) == 0;
             int flags = rxbuf[3];
@@ -4964,8 +4980,9 @@ static void decodes1(const unsigned char rxb[], uint32_t rxb_len,
             dummy = readbitss1(rxbuf, &startpos, 2);
             if (dummy == 1) {
                 dummy = readbitss1(rxbuf, &startpos, 1);
+                int val8 = readbitss1(rxbuf, &startpos, 8);
                 if (dummy == 1) {
-                    readbitss1(rxbuf, &startpos, 8);  // tei?
+                    // tei?
                 }
             }
 
@@ -4986,8 +5003,10 @@ static void decodes1(const unsigned char rxb[], uint32_t rxb_len,
                     }
                 }
                 if ((sel == 2) || (sel == 6)) {
-                    readbitss1(rxbuf, &startpos, 11);  // spd?
-                    readbitss1(rxbuf, &startpos, 12);
+                    uint32_t speedbits = readbitss1(rxbuf, &startpos, 11);  // spd
+                    kmh = speedbits * 0.18;
+                    uint32_t dirbits = readbitss1(rxbuf, &startpos, 12);   // ang
+                    dir = dirbits / 10.0;
                     sel = readbitss1(rxbuf, &startpos, 3);
                     if (sel == 3) {
                         uint32_t latbits = readbitss1(rxbuf, &startpos, 28);
@@ -5011,6 +5030,10 @@ static void decodes1(const unsigned char rxb[], uint32_t rxb_len,
                 osi_WrStr(" p=", 4ul);
                 osic_WrFixed((float)pressure, 2L, 1UL);
                 osi_WrStr("hPa", 4ul);
+
+                osi_WrStr(" v=", 4ul);
+                osic_WrFixed((float)kmh, 2L, 1UL);
+                osi_WrStr("km/h", 4ul);
             }
         }
     }

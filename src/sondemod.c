@@ -816,7 +816,7 @@ r>", 55ul);
          }
          else {
             if (h[1U]=='h') {
-               osi_WrStr("sondemod 1.36h.s1a", 15ul);
+               osi_WrStr("sondemod 1.36h.s1a", 19ul);
                osi_WrStrLn(" multichannel decoder RS92, RS41, SRS-C34/50, DFM\
 , M10, iMET Radiosondes", 73ul);
                osi_WrStrLn(" -A <meter>[:<meter>]   at lower altitude use -b \

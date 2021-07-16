@@ -816,7 +816,7 @@ r>", 55ul);
          }
          else {
             if (h[1U]=='h') {
-               osi_WrStr("sondemod 1.36h", 15ul);
+               osi_WrStr("sondemod 1.36h.s1a", 15ul);
                osi_WrStrLn(" multichannel decoder RS92, RS41, SRS-C34/50, DFM\
 , M10, iMET Radiosondes", 73ul);
                osi_WrStrLn(" -A <meter>[:<meter>]   at lower altitude use -b \
@@ -4857,6 +4857,7 @@ static void decodes1(const unsigned char rxb[], uint32_t rxb_len,
     lat = 0.0;
     lon = 0.0;
     clb = 0.1;
+    kmh = 0;
 
 
     getcall(rxb, rxb_len, usercall, 11ul);
@@ -4986,7 +4987,7 @@ static void decodes1(const unsigned char rxb[], uint32_t rxb_len,
                 }
             }
 
-            if ((rxbuf[0] == 0x04) || (rxbuf[0] == 0x45)) {
+            if ((rxbuf[0] == 0x04) || (rxbuf[0] == 0x3E) || (rxbuf[0] == 0x45)) {
                 readbitss1(rxbuf, &startpos, 11);  // ?
             }
 
@@ -5032,7 +5033,7 @@ static void decodes1(const unsigned char rxb[], uint32_t rxb_len,
                 osi_WrStr("hPa", 4ul);
 
                 osi_WrStr(" v=", 4ul);
-                osic_WrFixed((float)kmh, 2L, 1UL);
+                osic_WrFixed((float)kmh, 1L, 1UL);
                 osi_WrStr("km/h", 4ul);
             }
         }

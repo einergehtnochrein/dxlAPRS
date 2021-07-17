@@ -6352,6 +6352,96 @@ static void decodeframes1(uint32_t m, const char buf[],
 } /* end decodeframes1() */
 
 
+/* Decode a single Extended Binary Golay Codeword.
+ * Follow the simple algorithm described here:
+ * https://www.maplesoft.com/applications/view.aspx?SID=1757&view=html
+ */
+static int decodeGolayS1 (uint32_t *cw, int *numcorrected)
+{
+    const uint32_t H[12] = {
+        0x00800B71,
+        0x004006E3,
+        0x00200DC5,
+        0x00100B8B,
+        0x00080717,
+        0x00040E2D,
+        0x00020C5B,
+        0x000108B7,
+        0x0000816F,
+        0x000042DD,
+        0x000025B9,
+        0x00001FFE,
+    };
+
+    uint32_t S;     /* Syndrome vector */
+    uint32_t w;     /* Hamming weight */
+    int i,j;
+    uint32_t x;
+
+
+    *numcorrected = 0;
+
+    /* Determine syndromes */
+    S = 0;
+    for (i = 0; i < 12; i++) {
+        S = 2*S + (__builtin_popcount(*cw & H[i]) % 2);
+    }
+    w = __builtin_popcount(S);
+
+    /* Need for error correction? */
+    if (w > 0) {
+        /* If the weight of the syndrome vector is not larger than the error correction
+         * capability t, S holds the error pattern of the k info bits in cw.
+         */
+        if (w <= 3) {
+            *cw ^= (S << 12);
+            *numcorrected = w;
+        }
+        else {
+            /* Add the syndrome vector to the parity part of H. Look for a resulting
+             * vector of Hamming weight 2 or below.
+             */
+            for (j = 0; j < 12; j++) {
+                x = S ^ (H[j] & 0xFFF);
+                w = __builtin_popcount(x);
+                if (w <= 2) {
+                    *cw ^= (x << 12) + (1u << (11 - j));
+                    *numcorrected = 1 + __builtin_popcount(x);
+                }
+            }
+
+            /* If no correction was made yet: */
+            if (*numcorrected == 0) {
+                uint32_t S2 = 0;
+                for (i = 0; i < 12; i++) {
+                    S2 = 2*S2 + (__builtin_popcount(S & (H[i] & 0xFFF)) % 2);
+                }
+                w = __builtin_popcount(S2);
+                if (w > 3) {
+                    for (j = 0; j < 12; j++) {
+                        x = S2 ^ (H[j] & 0xFFF);
+                        w = __builtin_popcount(x);
+                        if (w <= 2) {
+                            *cw ^= x + (1u << (23 - j));
+                            *numcorrected = 1 + __builtin_popcount(x);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    /* After possible error correction: determine syndromes again */
+    S = 0;
+    for (int i = 0; i < 12; i++) {
+        S = 2*S + (__builtin_popcount(*cw & H[i]) % 2);
+    }
+
+    /* Success if all syndromes are zero */
+    return (S == 0);
+}
+
+
 static void repairs1(uint32_t m)
 {
    uint32_t rprcnt;
@@ -6379,7 +6469,8 @@ static void repairs1(uint32_t m)
     unsigned char *p = anonym->rxbuf;
     for (i = 0; i < sondeudp_FLENS1; i+=3) {
         uint32_t cw = (p[i+0] << 16) | (p[i+1] << 8) | (p[i+2] << 0);
-        // Do the decoding here...
+        int numcorrected = 0;
+        decodeGolayS1(&cw, &numcorrected);
         if ((i % 2) == 0) {
             rxdat[(i / 2) + 0] = (cw >> 16) & 0xFF;
             rxdat[(i / 2) + 1] = ((cw >> 12) & 0x0F) << 4;

@@ -6405,8 +6405,9 @@ static int decodeGolayS1 (uint32_t *cw, int *numcorrected)
                 x = S ^ (H[j] & 0xFFF);
                 w = __builtin_popcount(x);
                 if (w <= 2) {
+                    /* One error in the parity bits, and w errors in the data bits */
                     *cw ^= (x << 12) + (1u << (11 - j));
-                    *numcorrected = 1 + __builtin_popcount(x);
+                    *numcorrected = 1 + w;
                 }
             }
 
@@ -6417,13 +6418,18 @@ static int decodeGolayS1 (uint32_t *cw, int *numcorrected)
                     S2 = 2*S2 + (__builtin_popcount(S & (H[i] & 0xFFF)) % 2);
                 }
                 w = __builtin_popcount(S2);
-                if (w > 3) {
+                if (w <= 3) {
+                    *cw ^= S2;
+                    *numcorrected = w;
+                }
+                else {
                     for (j = 0; j < 12; j++) {
                         x = S2 ^ (H[j] & 0xFFF);
                         w = __builtin_popcount(x);
                         if (w <= 2) {
+                            /* One error in the data bits, and w errors in the parity bits */
                             *cw ^= x + (1u << (23 - j));
-                            *numcorrected = 1 + __builtin_popcount(x);
+                            *numcorrected = 1 + w;
                         }
                     }
                 }

@@ -4891,7 +4891,9 @@ static void decodes1(const unsigned char rxb[], uint32_t rxb_len,
             if ((rxbuf[1] & 0xF0) == 0) {
                 readbitss1(rxbuf, &startpos, 4);  // unknown 4 bits
                 id = readbitss1(rxbuf, &startpos, 12); // id
-                aprsstr_CardToStr(id, 1UL, nam, sizeof(nam));
+                nam[0]='W';
+                nam[1]='S';
+                aprsstr_CardToStr(id, 1UL, &nam[2], sizeof(nam)-2);
                 nameok = 1;
             }
             else {

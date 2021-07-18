@@ -12,4 +12,6 @@ dxlAPRS is Free Software toolchain to operate APRS(r). The toolchain contains:
 		to many users
 - udprfnet
 
+THIS TEST VERSION ADDS SUPPORT FOR THE WINDSOND S1 SONDE
+
 For more Details see License/README

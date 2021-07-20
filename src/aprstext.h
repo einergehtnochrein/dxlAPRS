@@ -73,7 +73,7 @@ extern void aprstext_listop(char);
 extern void aprstext_listtyps(char, char, char [],
                 uint32_t);
 
-extern void aprstext_listin(char [], uint32_t, char, char,
+extern void aprstext_listin(const char [], uint32_t, char, char,
                 char, int32_t, int32_t, int32_t);
 
 extern void aprstext_DateLocToStr(uint32_t, char [], uint32_t);
@@ -86,7 +86,7 @@ extern float aprstext_FtoC(float);
 
 extern float aprstext_CtoF(float);
 
-extern aprsdecode_pOPHIST aprstext_oppo(aprsdecode_MONCALL);
+extern aprsdecode_pOPHIST aprstext_oppo(const aprsdecode_MONCALL);
 
 extern void aprstext_setmarkalti(aprsdecode_pFRAMEHIST, aprsdecode_pOPHIST,
                 char);

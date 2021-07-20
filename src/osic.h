@@ -20,11 +20,11 @@ void osic_WrLn(void);
 
 void osic_WerrLn(void);
 
-void osic_WrStr(char s[], uint32_t s_len);
+void osic_WrStr(const char s[], uint32_t s_len);
 
-void osic_WrStrLn(char s[], uint32_t s_len);
+void osic_WrStrLn(const char s[], uint32_t s_len);
 
-void osic_WerrStr(char s[], uint32_t s_len);
+void osic_WerrStr(const char s[], uint32_t s_len);
 
 void osic_WerrStrLn(char s[], uint32_t s_len);
 
@@ -50,7 +50,7 @@ int32_t osic_OpenWrite(char fn[], uint32_t fn_len);
 
 int32_t osic_OpenReadLong(char fn[], uint32_t fn_len);
 
-int32_t osic_OpenRead(char fn[], uint32_t fn_len);
+int32_t osic_OpenRead(const char fn[], uint32_t fn_len);
 
 int32_t osic_OpenRW(char fn[], uint32_t fn_len);
 
@@ -138,7 +138,7 @@ uint32_t X2C_LSH(uint32_t a, int32_t length, int32_t n);
 
 char X2C_IN(uint32_t i, uint32_t bits, uint32_t set);
 
-char X2C_INL(uint32_t i, uint32_t bits, uint32_t *set);
+char X2C_INL(uint32_t i, uint32_t bits, const uint32_t *set);
 
 void X2C_INCL(uint32_t *set, uint32_t i, uint32_t bits);
 

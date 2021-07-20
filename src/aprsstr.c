@@ -29,7 +29,7 @@ static uint8_t CRCL[256];
 static uint8_t CRCH[256];
 
 
-extern void aprsstr_Assign(char a[], uint32_t a_len, char b[],
+extern void aprsstr_Assign(char a[], uint32_t a_len, const char b[],
                 uint32_t b_len)
 {
    uint32_t i;
@@ -46,7 +46,7 @@ extern void aprsstr_Assign(char a[], uint32_t a_len, char b[],
 } /* end Assign() */
 
 
-extern void aprsstr_Append(char a[], uint32_t a_len, char b[],
+extern void aprsstr_Append(char a[], uint32_t a_len, const char b[],
                 uint32_t b_len)
 {
    uint32_t j;
@@ -80,7 +80,7 @@ extern void aprsstr_Delstr(char a[], uint32_t a_len, uint32_t from,
 } /* end Delstr() */
 
 
-extern uint32_t aprsstr_Length(char a[], uint32_t a_len)
+extern uint32_t aprsstr_Length(const char a[], uint32_t a_len)
 {
    uint32_t i;
    i = 0UL;
@@ -234,7 +234,7 @@ extern void aprsstr_FixToStr(float x, uint32_t f, char s[],
 } /* end FixToStr() */
 
 
-extern char aprsstr_StrToCard(char s[], uint32_t s_len,
+extern char aprsstr_StrToCard(const char s[], uint32_t s_len,
                 uint32_t * x)
 {
    uint32_t i;
@@ -278,7 +278,7 @@ extern char aprsstr_StrToInt(char s[], uint32_t s_len,
 #define aprsstr_M (X2C_DIVR(X2C_max_real,100.0f))
 
 
-extern char aprsstr_StrToFix(float * x, char s[],
+extern char aprsstr_StrToFix(float * x, const char s[],
                 uint32_t s_len)
 {
    uint32_t i;
@@ -316,8 +316,8 @@ extern char aprsstr_StrToFix(float * x, char s[],
 } /* end StrToFix() */
 
 
-extern char aprsstr_StrCmp(char a[], uint32_t a_len,
-                char b[], uint32_t b_len)
+extern char aprsstr_StrCmp(const char a[], uint32_t a_len, 
+                           const char b[], uint32_t b_len)
 {
    uint32_t i;
    i = 0UL;
@@ -330,7 +330,7 @@ extern char aprsstr_StrCmp(char a[], uint32_t a_len,
 } /* end StrCmp() */
 
 
-extern int32_t aprsstr_InStr(char a[], uint32_t a_len, char b[],
+extern int32_t aprsstr_InStr(const char a[], uint32_t a_len, const char b[],
                 uint32_t b_len)
 /* position b in a else -1*/
 {
@@ -717,7 +717,7 @@ extern void aprsstr_AppCRC(char frame[], uint32_t frame_len,
 } /* end AppCRC() */
 
 
-extern uint32_t aprsstr_Hash(char frame[], uint32_t frame_len,
+extern uint32_t aprsstr_Hash(const char frame[], uint32_t frame_len,
                 int32_t start, int32_t end)
 {
    uint8_t h;
@@ -769,7 +769,7 @@ static char aprsstr_PID = '\360';
 
 
 static char call(int32_t * p, char raw[], uint32_t raw_len,
-                uint32_t * i, char mon[], uint32_t mon_len,
+                uint32_t * i, const char mon[], uint32_t mon_len,
                 char sep1, char sep2, char sep3,
                 uint32_t sbase)
 {
@@ -806,7 +806,7 @@ static char call(int32_t * p, char raw[], uint32_t raw_len,
 } /* end call() */
 
 
-extern void aprsstr_mon2raw(char mon[], uint32_t mon_len,
+extern void aprsstr_mon2raw(const char mon[], uint32_t mon_len,
                 char raw[], uint32_t raw_len, int32_t * p)
 {
    uint32_t r;
@@ -883,7 +883,7 @@ extern void aprsstr_mon2raw(char mon[], uint32_t mon_len,
 } /* end mon2raw() */
 
 
-extern char aprsstr_Call2Str(char r[], uint32_t r_len,
+extern char aprsstr_Call2Str(const char r[], uint32_t r_len,
                 char t[], uint32_t t_len, uint32_t pos,
                 uint32_t * len)
 {

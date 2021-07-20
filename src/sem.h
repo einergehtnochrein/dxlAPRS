@@ -62,7 +62,7 @@ extern "C" {
 /// \b REFERENCES \n
 /// [1] http://www.navcen.uscg.gov/gps/almanacs.htm
 /// 
-typedef struct
+typedef struct SEM_structAlmanac
 {
   unsigned       toa;                        //!< almanac time of applicability (reference time)               [s]
   unsigned short week;                       //!< 10 bit gps week 0-1023 (user must account for week rollover) [week]    

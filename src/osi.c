@@ -120,7 +120,7 @@ extern int32_t osi_OpenReadLong(char fn[], uint32_t fn_len)
 } /* end OpenReadLong() */
 
 
-extern int32_t osi_OpenRead(char fn[], uint32_t fn_len)
+extern int32_t osi_OpenRead(const char fn[], uint32_t fn_len)
 {
    return osic_OpenRead(fn, fn_len);
 } /* end OpenRead() */
@@ -165,7 +165,7 @@ extern void osi_Rename(char fname[], uint32_t fname_len,
 } /* end Rename() */
 
 
-extern void osi_Werr(char text[], uint32_t text_len)
+extern void osi_Werr(const char text[], uint32_t text_len)
 {
    osic_WerrStr(text, text_len);
 } /* end Werr() */
@@ -177,13 +177,13 @@ extern void osi_WerrLn(char text[], uint32_t text_len)
 } /* end WerrLn() */
 
 
-extern void osi_WrStrLn(char s[], uint32_t s_len)
+extern void osi_WrStrLn(const char s[], uint32_t s_len)
 {
    osic_WrStrLn(s, s_len);
 } /* end WrStrLn() */
 
 
-extern void osi_WrStr(char s[], uint32_t s_len)
+extern void osi_WrStr(const char s[], uint32_t s_len)
 {
    osic_WrStr(s, s_len);
 } /* end WrStr() */

@@ -636,7 +636,7 @@ static char StrToFixL(double * x, const char s[],
 } /* end StrToFixL() */
 
 
-static void Error(char text[], uint32_t text_len)
+static void Error(const char text[], uint32_t text_len)
 {
    X2C_PCOPY((void **)&text,text_len);
    osi_Werr(text, text_len);

@@ -62,7 +62,7 @@ extern float aprspos_azimuth(struct aprsstr_POSITION,
 
 extern void aprspos_GetPos(struct aprsstr_POSITION *, uint32_t *,
                 uint32_t *, int32_t *, char *, char *,
-                char [], uint32_t, uint32_t, uint32_t, char [],
+                const char [], uint32_t, uint32_t, uint32_t, char [],
                  uint32_t, char *);
 
 extern void aprspos_GetSym(char [], uint32_t, char *, char *);

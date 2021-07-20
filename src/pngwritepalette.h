@@ -38,7 +38,7 @@ struct pngwritepalette__D1 {
    size_t Len0;
 };
 
-extern int32_t writepng(char [], pROWPOINTERS, uint32_t, uint32_t,
+extern int32_t writepng(const char [], pROWPOINTERS, uint32_t, uint32_t,
                 pPNGPALETTE, uint32_t, uint32_t, pRNS);
 
 

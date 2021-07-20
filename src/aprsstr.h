@@ -37,16 +37,16 @@ struct aprsstr_POSITION {
 
 extern char aprsstr_showctrl;
 
-extern void aprsstr_Assign(char [], uint32_t, char [], uint32_t);
+extern void aprsstr_Assign(char [], uint32_t, const char [], uint32_t);
 
-extern void aprsstr_Append(char [], uint32_t, char [], uint32_t);
+extern void aprsstr_Append(char [], uint32_t, const char [], uint32_t);
 
 extern void aprsstr_Delstr(char [], uint32_t, uint32_t, uint32_t);
 
 extern void aprsstr_Extractword(char [], uint32_t, char [],
                 uint32_t);
 
-extern uint32_t aprsstr_Length(char [], uint32_t);
+extern uint32_t aprsstr_Length(const char [], uint32_t);
 
 extern void aprsstr_IntToStr(int32_t, uint32_t, char [], uint32_t);
 
@@ -55,16 +55,16 @@ extern void aprsstr_CardToStr(uint32_t, uint32_t, char [],
 
 extern void aprsstr_FixToStr(float, uint32_t, char [], uint32_t);
 
-extern char aprsstr_StrToCard(char [], uint32_t, uint32_t *);
+extern char aprsstr_StrToCard(const char [], uint32_t, uint32_t *);
 
 extern char aprsstr_StrToInt(char [], uint32_t, int32_t *);
 
-extern char aprsstr_StrToFix(float *, char [], uint32_t);
+extern char aprsstr_StrToFix(float *, const char [], uint32_t);
 
-extern char aprsstr_StrCmp(char [], uint32_t, char [],
+extern char aprsstr_StrCmp(const char [], uint32_t, const char [],
                 uint32_t);
 
-extern int32_t aprsstr_InStr(char [], uint32_t, char [],
+extern int32_t aprsstr_InStr(const char [], uint32_t, const char [],
                 uint32_t);
 
 extern void aprsstr_TimeToStr(uint32_t, char [], uint32_t);
@@ -80,10 +80,10 @@ extern int32_t aprsstr_GetIp2(char [], uint32_t, uint32_t *,
 
 extern void aprsstr_ipv4tostr(uint32_t, char [], uint32_t);
 
-extern char aprsstr_Call2Str(char [], uint32_t, char [],
+extern char aprsstr_Call2Str(const char [], uint32_t, char [],
                 uint32_t, uint32_t, uint32_t *);
 
-extern void aprsstr_mon2raw(char [], uint32_t, char [], uint32_t,
+extern void aprsstr_mon2raw(const char [], uint32_t, char [], uint32_t,
                  int32_t *);
 
 extern void aprsstr_raw2mon(char [], uint32_t, char [], uint32_t,
@@ -96,7 +96,7 @@ extern void aprsstr_AppCRC(char [], uint32_t, int32_t);
 
 extern void aprsstr_HashCh(char, uint8_t *, uint8_t *);
 
-extern uint32_t aprsstr_Hash(char [], uint32_t, int32_t,
+extern uint32_t aprsstr_Hash(const char [], uint32_t, int32_t,
                 int32_t);
 
 extern void aprsstr_cleanfilename(char [], uint32_t);

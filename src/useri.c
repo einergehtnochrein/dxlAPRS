@@ -861,7 +861,7 @@ extern int32_t useri_guesssize(char fn[], uint32_t fn_len,
 } /* end guesssize() */
 
 
-extern void useri_AddConfLine(uint8_t v, uint8_t act, char s[],
+extern void useri_AddConfLine(uint8_t v, uint8_t act, const char s[],
                 uint32_t s_len)
 {
    pCONFLINE pl;
@@ -2915,7 +2915,7 @@ static sMENULINES _cnst = {0xFFFFFFFFUL,0x1FFFFFFFUL};
 
 static void textwin(uint32_t xw, uint32_t lines, uint32_t xpo,
                 uint32_t ypo, uint32_t ident, uint32_t time0,
-                char color, char s[], uint32_t s_len,
+                char color, const char s[], uint32_t s_len,
                 char mstr[], uint32_t mstr_len, char cstr[],
                 uint32_t cstr_len)
 {
@@ -3080,7 +3080,7 @@ static void textwin(uint32_t xw, uint32_t lines, uint32_t xpo,
 
 
 extern void useri_textautomenu(int32_t x0, int32_t y00, uint32_t id,
-                uint32_t time0, char color, char s[],
+                uint32_t time0, char color, const char s[],
                 uint32_t s_len, char mtext[], uint32_t mtext_len,
                 char cmd[], uint32_t cmd_len)
 {
@@ -3135,7 +3135,7 @@ extern void useri_textautomenu(int32_t x0, int32_t y00, uint32_t id,
 
 
 extern void useri_textautosize(int32_t x0, int32_t y00, uint32_t id,
-                uint32_t time0, char color, char s[],
+                uint32_t time0, char color, const char s[],
                 uint32_t s_len)
 {
    useri_textautomenu(x0, y00, id, time0, color, s, s_len, "", 1ul, "", 1ul);
@@ -8256,7 +8256,7 @@ static void dopano(pMENU m, uint32_t xcl, uint32_t ycl)
          if (xdiv==1UL) isicon = 'M';
          else if (xdiv==2UL) isicon = 'I';
          else {
-            xcl<=aprsdecode_lums.fontysize+aprsdecode_lums.fontxsize*4UL && xcl>aprsdecode_lums.fontysize;
+            if (xcl<=aprsdecode_lums.fontysize+aprsdecode_lums.fontxsize*4UL && xcl>aprsdecode_lums.fontysize) {}
          }
          if ((uint32_t)m->minnormmax>0UL) {
             icfg(m->minnormmax, (char *) &isicon, 1u/1u);

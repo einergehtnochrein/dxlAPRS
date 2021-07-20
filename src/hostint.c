@@ -743,7 +743,7 @@ static void Linkstatus(uint16_t port, char unbuf)
          DiscBusyMsg(port, 1);
          anonym->events = 0x40U;
       }
-      else unbuf || GetInfo(port);
+      else if (unbuf || GetInfo(port)) {}
    }
 } /* end Linkstatus() */
 

@@ -57,7 +57,7 @@ void osic_WerrLn(void)
 	fflush(stderr);
 }
 
-void osic_WrStr(char s[], uint32_t s_len)
+void osic_WrStr(const char s[], uint32_t s_len)
 {
 	size_t len;
 
@@ -65,7 +65,7 @@ void osic_WrStr(char s[], uint32_t s_len)
 	fprintf(stdout, "%.*s", len, s);
 }
 
-void osic_WrStrLn(char s[], uint32_t s_len)
+void osic_WrStrLn(const char s[], uint32_t s_len)
 {
 	size_t len;
 
@@ -74,7 +74,7 @@ void osic_WrStrLn(char s[], uint32_t s_len)
 	osic_WrLn();
 }
 
-void osic_WerrStr(char s[], uint32_t s_len)
+void osic_WerrStr(const char s[], uint32_t s_len)
 {
 	size_t len;
 
@@ -171,7 +171,7 @@ int32_t osic_OpenReadLong(char fn[], uint32_t fn_len)
 	return open(fn, O_RDONLY | O_LARGEFILE);
 }
 
-int32_t osic_OpenRead(char fn[], uint32_t fn_len)
+int32_t osic_OpenRead(const char fn[], uint32_t fn_len)
 {
 	if (FNLENCHECK && strnlen(fn, fn_len) > fn_len)
 		return -1;
@@ -488,7 +488,7 @@ char X2C_IN(uint32_t i, uint32_t bits, uint32_t set)
 	return 0;
 }
 
-char X2C_INL(uint32_t i, uint32_t bits, uint32_t *set)
+char X2C_INL(uint32_t i, uint32_t bits, const uint32_t *set)
 {
 	if (i < bits)
 		return (set[(int)i / X2C_LSET_SIZE] & (1 << ((int)i % X2C_LSET_SIZE))) != 0;
@@ -596,6 +596,6 @@ void *osic_chkptr(void *p)
 
 int32_t osic_setsystime(uint32_t * time0)
 {
-	return stime(time0);
+	return stime((const time_t *)time0);
 }
 

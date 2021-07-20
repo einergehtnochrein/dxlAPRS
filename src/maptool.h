@@ -256,7 +256,7 @@ extern void maptool_readpoifiles(void);
 
 extern char maptool_poisactiv(void);
 
-extern char maptool_cmpwild(char [], uint32_t, char [],
+extern char maptool_cmpwild(char [], uint32_t, const char [],
                 uint32_t);
 
 extern void maptool_cleanfind(char [], uint32_t);

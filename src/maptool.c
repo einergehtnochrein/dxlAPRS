@@ -2246,7 +2246,7 @@ static uint32_t instr(uint32_t * i, uint32_t k, const char a[],
 
 
 extern char maptool_cmpwild(char a[], uint32_t a_len,
-                char b[], uint32_t b_len)
+                const char b[], uint32_t b_len)
 {
    uint32_t j;
    uint32_t i;
@@ -4546,7 +4546,7 @@ END existsimg;
 #define maptool_MINSPACE 80
 
 
-static void reqmap(char wfn[], uint32_t wfn_len, char byop)
+static void reqmap(const char wfn[], uint32_t wfn_len, char byop)
 /* append filename of missing tiles to file, 0C is flush */
 {
    char h[1000];

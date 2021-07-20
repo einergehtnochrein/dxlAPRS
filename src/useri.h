@@ -252,11 +252,11 @@ extern maptool_pIMAGE useri_panoimage;
 extern void useri_mainpop(void);
 
 extern void useri_textautomenu(int32_t, int32_t, uint32_t, uint32_t,
-                char, char [], uint32_t, char [], uint32_t,
+                char, const char [], uint32_t, char [], uint32_t,
                 char [], uint32_t);
 
 extern void useri_textautosize(int32_t, int32_t, uint32_t, uint32_t,
-                char, char [], uint32_t);
+                char, const char [], uint32_t);
 
 extern void useri_say(char [], uint32_t, uint32_t, char);
 
@@ -333,7 +333,7 @@ extern void useri_configbool(uint8_t, char);
 
 extern char useri_configon(uint8_t);
 
-extern void useri_AddConfLine(uint8_t, uint8_t, char [], uint32_t);
+extern void useri_AddConfLine(uint8_t, uint8_t, const char [], uint32_t);
 
 extern void useri_setview(int32_t, char [], uint32_t);
 

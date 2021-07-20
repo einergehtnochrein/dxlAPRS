@@ -2024,7 +2024,7 @@ static char callscmp(uint32_t i0, uint32_t len,
 } /* end callscmp() */
 
 
-static char vias(char dat[], uint32_t dat_len,
+static char vias(const char dat[], uint32_t dat_len,
                 const FILTERCALLS calls)
 {
    uint32_t b;
@@ -2048,7 +2048,7 @@ static char vias(char dat[], uint32_t dat_len,
 } /* end vias() */
 
 
-static char entrypoint(char dat[], uint32_t dat_len,
+static char entrypoint(const char dat[], uint32_t dat_len,
                 const FILTERCALLS calls)
 {
    uint32_t i0;
@@ -2073,7 +2073,7 @@ static char entrypoint(char dat[], uint32_t dat_len,
 } /* end entrypoint() */
 
 
-static char prefix(char dat[], uint32_t dat_len,
+static char prefix(const char dat[], uint32_t dat_len,
                 const FILTERCALLS calls, char fullmatch)
 {
    uint32_t i0;
@@ -2084,7 +2084,7 @@ static char prefix(char dat[], uint32_t dat_len,
 } /* end prefix() */
 
 
-static char destcallfilt(char dat[], uint32_t dat_len,
+static char destcallfilt(const char dat[], uint32_t dat_len,
                 const FILTERCALLS calls)
 {
    uint32_t b;
@@ -2109,7 +2109,7 @@ static char destcallfilt(char dat[], uint32_t dat_len,
 } /* end destcallfilt() */
 
 
-static char objectfilt(char dat[], uint32_t dat_len,
+static char objectfilt(const char dat[], uint32_t dat_len,
                 const FILTERCALLS calls)
 {
    uint32_t len;
@@ -2138,7 +2138,7 @@ static char objectfilt(char dat[], uint32_t dat_len,
 } /* end objectfilt() */
 
 
-static char typ(struct POSCALL * posc, char dat[],
+static char typ(struct POSCALL * posc, const char dat[],
                 uint32_t dat_len, pTCPSOCK to, char * t)
 {
    uint32_t ii;
@@ -2230,7 +2230,7 @@ p", 2ul)>=0L) return 1;
 } /* end typ() */
 
 
-static char msgfilt(char dat[], uint32_t dat_len,
+static char msgfilt(const char dat[], uint32_t dat_len,
                 const FILTERCALLS calls)
 {
    uint32_t j;
@@ -2258,7 +2258,7 @@ static char msgfilt(char dat[], uint32_t dat_len,
 } /* end msgfilt() */
 
 
-static char qfilt(char dat[], uint32_t dat_len,
+static char qfilt(const char dat[], uint32_t dat_len,
                 const char s[], uint32_t s_len)
 {
    uint32_t i0;
@@ -2279,7 +2279,7 @@ static char qfilt(char dat[], uint32_t dat_len,
 } /* end qfilt() */
 
 
-static char symfilt(char dat[], uint32_t dat_len,
+static char symfilt(const char dat[], uint32_t dat_len,
                 const FILTERCALLS syms)
 {
    uint32_t course;
@@ -2479,7 +2479,7 @@ static void Sendtcp(pTCPSOCK to, const FRAMEBUF buf)
 } /* end Sendtcp() */
 
 
-static char filt(int32_t outer, char b[], uint32_t b_len,
+static char filt(int32_t outer, const char b[], uint32_t b_len,
                 const char s[], uint32_t s_len)
 {
    int32_t n;
@@ -3064,7 +3064,7 @@ static void IncHeard(pHEARD ph, char pk, char jnk,
 } /* end IncHeard() */
 
 
-static void Wx(float * data, char * typ0, char b[],
+static void Wx(float * data, char * typ0, const char b[],
                 uint32_t b_len, uint32_t p)
 {
    int32_t t;
@@ -4492,7 +4492,7 @@ static int32_t callchk(uint32_t * qpos, uint8_t * unset,
 
 
 static void Iconstruct(char qtext[32], uint32_t * pins,
-                char logcall[], uint32_t logcall_len, char buf[],
+                const char logcall[], uint32_t logcall_len, char buf[],
                 uint32_t buf_len, uint32_t * p)
 {
    uint32_t k;
@@ -4680,7 +4680,7 @@ static int32_t AprsIs(char buf[], uint32_t buf_len,
 } /* end AprsIs() */
 
 
-static char getfix(uint32_t * p, char s[], uint32_t s_len,
+static char getfix(uint32_t * p, const char s[], uint32_t s_len,
                 float * x, float mul)
 {
    uint32_t i0;
@@ -4707,7 +4707,7 @@ static char getfix(uint32_t * p, char s[], uint32_t s_len,
 } /* end getfix() */
 
 
-static void getcalls(char s[], uint32_t s_len, uint32_t * p,
+static void getcalls(const char s[], uint32_t s_len, uint32_t * p,
                 MONCALL table[], uint32_t table_len)
 {
    uint32_t j;
@@ -4735,7 +4735,7 @@ typedef uint32_t CHSET0[4];
 static CHSET0 _cnst0 = {0x00000000UL,0x00080000UL,0x00000000UL,0x00BBE200UL}
                 ;
 
-static void gettyps(char s[], uint32_t s_len, uint32_t * p,
+static void gettyps(const char s[], uint32_t s_len, uint32_t * p,
                 char t[], uint32_t t_len)
 {
    uint32_t j;

@@ -2154,7 +2154,7 @@ static char wrlog(const char b[], uint32_t b_len,
 } /* end wrlog() */
 
 
-static aprsdecode_pOPHIST findop(aprsdecode_MONCALL call,
+static aprsdecode_pOPHIST findop(const aprsdecode_MONCALL call,
                 char online)
 {
    aprsdecode_pOPHIST op;
@@ -2289,7 +2289,7 @@ BEGIN
 END viaghost;
 */
 
-static float num(char buf[], uint32_t buf_len, uint32_t * p)
+static float num(const char buf[], uint32_t buf_len, uint32_t * p)
 {
    char c;
    char sig;
@@ -2320,7 +2320,7 @@ static float num(char buf[], uint32_t buf_len, uint32_t * p)
 } /* end num() */
 
 
-static void skip(char buf[], uint32_t buf_len, uint32_t * p)
+static void skip(const char buf[], uint32_t buf_len, uint32_t * p)
 {
    if (*p<=buf_len-1 && buf[*p]==',') ++*p;
 } /* end skip() */
@@ -2968,7 +2968,7 @@ static aprsdecode_SET256 _cnst = {0x00000000UL,0x03FF8000UL,0x17FFFFFEUL,
                 0x07FFFFFEUL,0x00000000UL,0x00000000UL,0x00000000UL,
                 0x00000000UL};
 
-extern int32_t aprsdecode_Decode(char buf[], uint32_t buf_len,
+extern int32_t aprsdecode_Decode(const char buf[], uint32_t buf_len,
                 struct aprsdecode_DAT * dat)
 {
    uint32_t ia;
@@ -3552,7 +3552,7 @@ static void popupmessage(const char from[], uint32_t from_len,
 } /* end popupmessage() */
 
 
-extern void aprsdecode_getactack(aprsdecode_MONCALL call, char ack[],
+extern void aprsdecode_getactack(const aprsdecode_MONCALL call, char ack[],
                 uint32_t ack_len)
 /* get actual message ack */
 {
@@ -5472,7 +5472,7 @@ static char callchk(uint32_t * qpos, char * tablechk,
 
 
 static void Iconstruct(char qtext[32], uint32_t * pins,
-                char logcall[], uint32_t logcall_len, char buf[],
+                const char logcall[], uint32_t logcall_len, char buf[],
                 uint32_t buf_len, uint32_t * p)
 {
    uint32_t k;
@@ -6335,7 +6335,7 @@ static void app0(uint32_t * viac, aprsdecode_FRAMEBUF tb, uint32_t * tp,
 
 
 static char via(char words[], uint32_t words_len,
-                aprsdecode_FRAMEBUF b, char typ, uint32_t from,
+                const aprsdecode_FRAMEBUF b, char typ, uint32_t from,
                 uint32_t to)
 {
    uint32_t i;
@@ -6354,7 +6354,7 @@ static char via(char words[], uint32_t words_len,
 } /* end via() */
 
 
-static char num0(aprsdecode_FRAMEBUF b, uint32_t i, uint32_t * n)
+static char num0(const aprsdecode_FRAMEBUF b, uint32_t i, uint32_t * n)
 {
    if ((i<511UL && (uint8_t)b[i]>='0') && (uint8_t)b[i]<='9') {
       *n = (uint32_t)(uint8_t)b[i]-48UL;
@@ -6366,7 +6366,7 @@ static char num0(aprsdecode_FRAMEBUF b, uint32_t i, uint32_t * n)
 
 static char scanpath(char words[], uint32_t words_len,
                 uint32_t * tp, aprsdecode_FRAMEBUF tb, uint32_t * viac,
-                aprsdecode_FRAMEBUF b, uint32_t * p, uint32_t to,
+                const aprsdecode_FRAMEBUF b, uint32_t * p, uint32_t to,
                 char store)
 {
    uint32_t hp;

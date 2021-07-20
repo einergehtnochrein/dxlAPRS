@@ -802,7 +802,7 @@ extern void aprstext_optext(uint32_t typ, char findword[],
 } /* end optext() */
 
 
-extern aprsdecode_pOPHIST aprstext_oppo(aprsdecode_MONCALL opcall)
+extern aprsdecode_pOPHIST aprstext_oppo(const aprsdecode_MONCALL opcall)
 /* find pointer to call */
 {
    aprsdecode_pOPHIST op;
@@ -840,7 +840,7 @@ extern void aprstext_listop(char decoded)
 } /* end listop() */
 
 
-extern void aprstext_listin(char r[], uint32_t r_len, char port,
+extern void aprstext_listin(const char r[], uint32_t r_len, char port,
                 char dir, char decoded, int32_t quali,
                 int32_t txd, int32_t level)
 {

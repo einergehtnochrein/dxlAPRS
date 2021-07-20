@@ -2153,7 +2153,7 @@ extern uint32_t imagetext_fontsizey(uint32_t fontsize)
 extern void imagetext_writestr(imagetext_pIMAGE image, uint32_t x,
                 uint32_t y, uint32_t fontsize, uint32_t dir,
                 uint32_t contrast, int32_t br, int32_t bg,
-                int32_t bb, char s[], uint32_t s_len)
+                int32_t bb, const char s[], uint32_t s_len)
 {
    uint32_t charxy;
    uint32_t chary;
@@ -2277,7 +2277,7 @@ static uint32_t Len(const char s[], uint32_t s_len)
 } /* end Len() */
 
 
-extern uint32_t imagetext_strsize(uint32_t fontsize, char s[],
+extern uint32_t imagetext_strsize(uint32_t fontsize, const char s[],
                 uint32_t s_len)
 {
    return Len(s, s_len)*imagetext_fontsizex(fontsize);

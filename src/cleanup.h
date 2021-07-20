@@ -11,7 +11,7 @@
 
 typedef long SigNum;
 
-extern void cleanup(long);
+extern void cleanup(int);
 
 
 #endif /* cleanup_H_ */

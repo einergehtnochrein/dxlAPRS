@@ -165,7 +165,7 @@ static char bit5(char c)
 /* L is wildcard */
 
 
-static void komma(char buf[], uint32_t buf_len, uint32_t * p)
+static void komma(const char buf[], uint32_t buf_len, uint32_t * p)
 {
    for (;;) {
       if (*p+20UL>=buf_len-1 || (uint8_t)buf[*p]<' ') return;
@@ -190,7 +190,7 @@ static char ew(char c)
 } /* end ew() */
 
 
-static char dig3(char buf[], uint32_t buf_len, uint32_t * s,
+static char dig3(const char buf[], uint32_t buf_len, uint32_t * s,
                 uint32_t * p)
 {
    uint32_t i;
@@ -262,7 +262,7 @@ static CHSET _cnst = {0x20000000UL,0x40000080UL,0x20100000UL,0x00000001UL};
 
 extern void aprspos_GetPos(struct aprsstr_POSITION * pos, uint32_t * speed,
                  uint32_t * course, int32_t * altitude, char * symb,
-                char * symbt, char buf[], uint32_t buf_len,
+                char * symbt, const char buf[], uint32_t buf_len,
                 uint32_t micedest, uint32_t payload, char coment[],
                 uint32_t coment_len, char * postyp)
 {

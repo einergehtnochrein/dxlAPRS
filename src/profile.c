@@ -188,7 +188,7 @@ struct _1 {
 static struct _1 colours[19];
 
 
-static void Error(char text[], uint32_t text_len)
+static void Error(const char text[], uint32_t text_len)
 {
    X2C_PCOPY((void **)&text,text_len);
    osi_Werr(text, text_len);

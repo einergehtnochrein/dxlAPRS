@@ -686,7 +686,7 @@ extern struct xosi_PROCESSHANDLE aprsdecode_serialpid2;
 
 extern struct xosi_PROCESSHANDLE aprsdecode_maploadpid;
 
-extern int32_t aprsdecode_Decode(char [], uint32_t,
+extern int32_t aprsdecode_Decode(const char [], uint32_t,
                 struct aprsdecode_DAT *);
 
 extern int32_t aprsdecode_Stoframe(aprsdecode_pOPHIST *, char [],
@@ -732,7 +732,7 @@ extern void aprsdecode_deltxmsg(uint32_t, uint32_t);
 
 extern void aprsdecode_acknumstr(char [], uint32_t, uint32_t);
 
-extern void aprsdecode_getactack(aprsdecode_MONCALL, char [],
+extern void aprsdecode_getactack(const aprsdecode_MONCALL, char [],
                 uint32_t);
 
 extern void aprsdecode_objsender(aprsdecode_pOPHIST, char [],

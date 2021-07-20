@@ -1229,34 +1229,6 @@ extern int32_t gpspos_getposit(uint32_t weekms, uint32_t * systime,
 
 #define gpspos_MINDATE 1261440000
 
-struct SEM_structAlmanac;
-
-
-struct SEM_structAlmanac {
-   uint32_t toa; /* almanac time of applicability (reference time [s]*/
-   uint16_t week; /* 10 bit gps week 0-1023 (user must account for week rollover) [week] */
-   uint16_t prn; /* GPS prn number */
-   uint16_t reserved; /* reserved */
-   uint16_t svn; /* Satellite vehicle number */
-   uint8_t ura; /* User Range Accuracy lookup code, [0-15], see p. 83 GPSICD200C, 0 is excellent, 15 is use at own risk */
-   uint8_t health; /* 0=healthy, unhealthy otherwise  [], subframe 4 and 5, page 25 six-bit health code */
-   uint8_t config_code; /* configuration code   [], if >=9 Anti-Spoofing is on */
-   /* this inicator is not part of the SEM standard but is added by the user if known */
-   char is_af0_af1_high_precision;
-                /* indicates precision of af0 and af1 [1=high precision,
-                0=low precision] (22&16 bits,
-                ephemeris source) vs (11&11 bits, almanac source),
-                0 is typical for most SEM sources */
-   double ecc; /* eccentricity */
-   double i0; /* orbital inclination at reference time                        [rad] */
-   double omegadot; /* rate of right ascension                                      [rad/s] */
-   double sqrta; /* square root of the semi-major axis                           [m^(1/2)]*/
-   double omega0; /* longitude of ascending node of orbit plane at weekly epoch   [rad] */
-   double w; /* argument of perigee                                          [rad] */
-   double m0; /* mean anomaly at reference time                               [rad] */
-   double af0; /* polynomial clock correction coefficient (clock bias)         [s],   Note: parameters from ephemeris preferred vs almanac (22 vs 11 bits) */
-   double af1; /* polynomial clock correction coefficient (clock drift)        [s/s], Note: parameters from ephemeris preferred vs almanac (16 vs 11 bits) */
-};
 
 struct YUMA_structAlmanac;
 
@@ -1306,7 +1278,7 @@ extern char gpspos_readalmanach(char fnsem[],
                 sizeof(struct YUMA_structAlmanac [32]));
    memset((char *)rinexalm,(char)0,
                 sizeof(struct structEphemeris [3072]));
-   semok = fnsem[0UL] && SEM_ReadAlmanacDataFromFile(fnsem, (char *)alm,
+   semok = fnsem[0UL] && SEM_ReadAlmanacDataFromFile(fnsem, alm,
                  32U, &cnt);
    if (semok) {
       for (i = 0UL; i<=31UL; i++) {
@@ -1316,7 +1288,7 @@ extern char gpspos_readalmanach(char fnsem[],
    yumaok = fnyuma[0UL] && YUMA_ReadAlmanacDataFromFile(fnyuma,
                 (char *)yumaalm, 32U, &cnt);
    rinexok = fnrinex[0UL] && RINEX_DecodeGPSNavigationFile(fnrinex,
-                (char *) &rinexklobuchar, (char *)rinexalm, 3071UL,
+                (GNSS_structKlobuchar *) &rinexklobuchar, (char *)rinexalm, 3071UL,
                  &ri);
    if (rinexok && ri>0UL) {
       if (verb) {

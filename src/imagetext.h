@@ -40,9 +40,9 @@ typedef struct imagetext_IMAGE * imagetext_pIMAGE;
 
 extern void imagetext_writestr(imagetext_pIMAGE, uint32_t, uint32_t,
                 uint32_t, uint32_t, uint32_t, int32_t, int32_t,
-                int32_t, char [], uint32_t);
+                int32_t, const char [], uint32_t);
 
-extern uint32_t imagetext_strsize(uint32_t, char [], uint32_t);
+extern uint32_t imagetext_strsize(uint32_t, const char [], uint32_t);
 
 extern uint32_t imagetext_fontsizex(uint32_t);
 

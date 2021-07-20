@@ -31,7 +31,7 @@ int logout1(int pid, char *line)
 		strncpy(line, ut.ut_line, UT_LINESIZE);
 		bzero(ut.ut_name, UT_NAMESIZE);
 		bzero(ut.ut_host, UT_HOSTSIZE);
-		time(&ut.ut_time);
+		time((time_t *)&ut.ut_time);
 		lseek(fd, -(off_t)sizeof(struct utmp), L_INCR);
 		write(fd, &ut, sizeof(struct utmp));
 		close(fd);
@@ -56,7 +56,7 @@ void logwtmp(const char *line, const char *name, const char *host)
 		strncpy(ut.ut_line, line, sizeof(ut.ut_line));
 		strncpy(ut.ut_name, name, sizeof(ut.ut_name));
 		strncpy(ut.ut_host, host, sizeof(ut.ut_host));
-		time(&ut.ut_time);
+		time((time_t *)&ut.ut_time);
 		if (write(fd, &ut, sizeof(struct utmp)) != sizeof(struct utmp))
 			ftruncate(fd, buf.st_size);
 	}

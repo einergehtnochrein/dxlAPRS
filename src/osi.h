@@ -124,7 +124,7 @@ extern int32_t osi_OpenWrite(char [], uint32_t);
 
 extern int32_t osi_OpenReadLong(char [], uint32_t);
 
-extern int32_t osi_OpenRead(char [], uint32_t);
+extern int32_t osi_OpenRead(const char [], uint32_t);
 
 extern int32_t osi_OpenRW(char [], uint32_t);
 
@@ -138,7 +138,7 @@ extern int32_t osi_RdBin(int32_t, char [], uint32_t, uint32_t);
 
 extern void osi_WrBin(int32_t, char [], uint32_t, uint32_t);
 
-extern void osi_Werr(char [], uint32_t);
+extern void osi_Werr(const char [], uint32_t);
 
 extern void osi_WrHex(uint32_t, uint32_t);
 
@@ -156,7 +156,7 @@ extern int32_t osi_settime(uint32_t *);
 
 extern void osi_NextArg(char [], uint32_t);
 
-extern void osi_WrStr(char [], uint32_t);
+extern void osi_WrStr(const char [], uint32_t);
 
 extern void osi_Erase(char [], uint32_t, char *);
 
@@ -166,7 +166,7 @@ extern int32_t osi_getptsname(int32_t, char *, uint32_t);
 
 extern int32_t osi_symblink(char *, char *);
 
-extern void osi_WrStrLn(char [], uint32_t);
+extern void osi_WrStrLn(const char [], uint32_t);
 
 extern int32_t osi_realint(float);
 

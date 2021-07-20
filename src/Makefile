@@ -64,7 +64,8 @@ CDEFS		= -Wall \
 		  -Wno-unused-variable -Wno-parentheses -Wno-pointer-sign \
 		  -Wno-format -Wno-return-type -Wno-char-subscripts \
 		  -Wno-uninitialized \
-		  -Werror=implicit-function-declaration
+		  -Werror=implicit-function-declaration \
+		  -Wno-stringop-truncation -Wno-unused-but-set-variable
 else
 CDEFS		= -w
 endif

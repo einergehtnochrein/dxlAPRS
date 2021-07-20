@@ -45,7 +45,7 @@ extern "C" {
 
 
 /// \brief    These are the supported receiver data types.
-typedef enum GNSS_enumRxDataType
+enum GNSS_enumRxDataType
 {
   GNSS_RXDATA_NOVATELOEM4 = 0, //!< NovAtel OEM4 data.
   GNSS_RXDATA_RINEX21     = 1, //!< RINEX version 2.1

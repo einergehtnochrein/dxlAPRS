@@ -364,6 +364,10 @@ struct CONTEXTS1 {
    float clb;
    float dir;
    float alt;
+
+    int32_t lat_ref;
+    int32_t lon_ref;
+    uint32_t pos_time;
 };
 
 struct DFMTYPES;
@@ -4856,7 +4860,8 @@ static void decodes1(const unsigned char rxb[], uint32_t rxb_len,
     pc = 0;
     lat = 0.0;
     lon = 0.0;
-    clb = 0.1;
+    alt = 0;
+    clb = 0;
     kmh = 0;
 
 
@@ -4952,10 +4957,8 @@ static void decodes1(const unsigned char rxb[], uint32_t rxb_len,
 
             pc->tused = systime;
 
-            if (pc->id > -1) {
+            if (pc->id > 0) {
                 aprsstr_CardToStr(pc->id, 1UL, pc->ser, sizeof(pc->ser));
-                aprsstr_CardToStr(pc->id, 1UL, s, 101ul);
-                aprsstr_Append(pc->ser, sizeof(pc->ser), s, 101ul);
             }
 
             int nbits = rxbuf[2];
@@ -5010,17 +5013,68 @@ static void decodes1(const unsigned char rxb[], uint32_t rxb_len,
                     kmh = speedbits * 0.18;
                     uint32_t dirbits = readbitss1(rxbuf, &startpos, 12);   // ang
                     dir = dirbits / 10.0;
-                    sel = readbitss1(rxbuf, &startpos, 3);
-                    if (sel == 3) {
-                        uint32_t latbits = readbitss1(rxbuf, &startpos, 28);
-                        uint32_t latdeg = (latbits - 90000000ul) / 1000000ul;
-                        float latmin = (latbits - 90000000ul - 1000000ul*latdeg) / 10000.0f;
-                        lat = (latdeg + latmin / 60.0) * (3.1415926535 / 180.0);
 
-                        uint32_t lonbits = readbitss1(rxbuf, &startpos, 29);
-                        uint32_t londeg = (lonbits - 180000000ul) / 1000000ul;
-                        float lonmin = (lonbits - 180000000ul - 1000000ul*londeg) / 10000.0f;
-                        lon = (londeg + lonmin / 60.0) * (3.1415926535 / 180.0);
+                    int havePOS = 0;
+
+                    sel = readbitss1(rxbuf, &startpos, 3);
+
+                    if ((sel == 1) && (systime - pc->pos_time < 20)) {
+                        int32_t lat_delta14 = readbitss1(rxbuf, &startpos, 14);
+                        int32_t lon_delta14 = readbitss1(rxbuf, &startpos, 14);
+
+                        if ((lat_delta14 < 10000) && (lon_delta14 < 10000)) {
+                            int32_t lat_delta_ref = pc->lat_ref % 10000;
+                            if (abs(lat_delta14 - lat_delta_ref) >= 5000) {
+                                lat_delta14 += (lat_delta14 < lat_delta_ref) ? 10000 : -10000;
+                            }
+                            pc->lat_ref = 10000 * (pc->lat_ref / 10000) + lat_delta14;
+
+                            int32_t lon_delta_ref = pc->lon_ref % 10000;
+                            if (abs(lon_delta14 - lon_delta_ref) >= 5000) {
+                                lon_delta14 += (lon_delta14 < lon_delta_ref) ? 10000 : -10000;
+                            }
+                            pc->lon_ref = 10000 * (pc->lon_ref / 10000) + lon_delta14;
+
+                            havePOS = 1;
+                        }
+                    }
+
+                    if ((sel == 2) && (systime - pc->pos_time < 30)) {
+                        int32_t lat_delta20 = readbitss1(rxbuf, &startpos, 20);
+                        int32_t lon_delta20 = readbitss1(rxbuf, &startpos, 20);
+
+                        if ((lat_delta20 < 1000000) && (lon_delta20 < 1000000)) {
+                            int32_t lat_delta_ref = pc->lat_ref % 1000000;
+                            if (abs(lat_delta20 - lat_delta_ref) >= 500000) {
+                                lat_delta20 += (lat_delta20 < lat_delta_ref) ? 1000000 : -1000000;
+                            }
+                            pc->lat_ref = 1000000 * (pc->lat_ref / 1000000) + lat_delta20;
+
+                            int32_t lon_delta_ref = pc->lon_ref % 1000000;
+                            if (abs(lon_delta20 - lon_delta_ref) >= 500000) {
+                                lon_delta20 += (lon_delta20 < lon_delta_ref) ? 1000000 : -1000000;
+                            }
+                            pc->lon_ref = 1000000 * (pc->lon_ref / 1000000) + lon_delta20;
+                            havePOS = 1;
+                        }
+                    }
+
+                    if (sel == 3) {
+                        pc->lat_ref = readbitss1(rxbuf, &startpos, 28);
+                        pc->lon_ref = readbitss1(rxbuf, &startpos, 29);
+                        havePOS = 1;
+                    }
+
+                    if (havePOS) {
+                        pc->pos_time = systime;
+
+                        uint32_t latdeg = (pc->lat_ref - 90000000ul) / 1000000ul;
+                        double latmin = (pc->lat_ref - 90000000ul - 1e6*latdeg) / 10000.0;
+                        lat = (latdeg + latmin / 60.0) * (M_PI / 180.0);
+
+                        uint32_t londeg = (pc->lon_ref - 180000000ul) / 1000000ul;
+                        double lonmin = (pc->lon_ref - 180000000ul - 1e6*londeg) / 10000.0;
+                        lon = (londeg + lonmin / 60.0) * (M_PI / 180.0);
                     }
                 }
             }
@@ -5051,7 +5105,7 @@ static void decodes1(const unsigned char rxb[], uint32_t rxb_len,
                 (double) -(float)(uint32_t)sendmhzfromsdr, 0.0,
                 0.0, 0, 0UL, pc->name, 9ul, 0UL, 0, 0UL, 0.0,
                 usercall, 11ul, 0UL, (double)X2C_max_real,
-                sondeaprs_nofilter, 1, 0L, "WS", 4ul, pc->ser, 21ul,
+                sondeaprs_nofilter, 1, 0L, "S1", 4ul, pc->ser, 21ul,
                 sdrblock);
         pc->framesent = 1;
     }

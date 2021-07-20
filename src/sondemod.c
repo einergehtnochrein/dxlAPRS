@@ -4981,6 +4981,9 @@ static void decodes1(const unsigned char rxb[], uint32_t rxb_len,
             readbitss1(rxbuf, &startpos, 1);  // some flag
 
             int32_t tebits = readbitss1(rxbuf, &startpos, 13);
+            if (tebits & (1u << 12)) {
+                tebits -= 8192;
+            }
             temperature = (tebits - 1000.0) / 100.0;
 
             dummy = readbitss1(rxbuf, &startpos, 2);

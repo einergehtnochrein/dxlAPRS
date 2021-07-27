@@ -4944,6 +4944,8 @@ static void decodes1(const unsigned char rxb[], uint32_t rxb_len,
                 pc->next = pcontexts1;
                 pcontexts1 = pc;
                 aprsstr_Assign(pc->name, 9ul, nam, 9ul);
+                pc->id = -1;
+                pc->sid = -1;
                 if (sondeaprs_verb) {
                     osi_WrStrLn("is new ", 8ul);
                 }
@@ -4967,24 +4969,26 @@ static void decodes1(const unsigned char rxb[], uint32_t rxb_len,
             int startpos = 8;
             uint32_t dummy;
 
-            readbitss1(rxbuf, &startpos, 4);  // unknown 4 bits
             if (haveID) {
-                pc->id = readbitss1(rxbuf, &startpos, 12); // id
+                pc->id = readbitss1(rxbuf, &startpos, 16); // id
             }
             else {
-                pc->id = -1;
+                pc->sid = readbitss1(rxbuf, &startpos, 4);  // sid
             }
 
+            int haveHUM = 0;
+            if ((rxbuf[0] == 0x04) || (rxbuf[0] == 0x3E) || (rxbuf[0] == 0x45)) {
+                haveHUM = 1;
+            }
             int haveGPS = (rxbuf[3] >> 7) & 1;
+            int haveXXX = (rxbuf[3] >> 6) & 1;
+            int haveHIST = (rxbuf[3] >> 5) & 1;
+            int haveEXTRA = (rxbuf[3] >> 1) & 1;
 
             readbitss1(rxbuf, &startpos, 4);  // probably "md"
-            readbitss1(rxbuf, &startpos, 1);  // some flag
 
-            int32_t tebits = readbitss1(rxbuf, &startpos, 13);
-            if (tebits & (1u << 12)) {
-                tebits -= 8192;
-            }
-            temperature = (tebits - 1000.0) / 100.0;
+            int32_t tebits = readbitss1(rxbuf, &startpos, 14);
+            temperature = -10.0 + (tebits - 8192) / 100.0;
 
             dummy = readbitss1(rxbuf, &startpos, 2);
             if (dummy == 1) {
@@ -4995,7 +4999,7 @@ static void decodes1(const unsigned char rxb[], uint32_t rxb_len,
                 }
             }
 
-            if ((rxbuf[0] == 0x04) || (rxbuf[0] == 0x3E) || (rxbuf[0] == 0x45)) {
+            if (haveHUM) {
                 readbitss1(rxbuf, &startpos, 11);  // ?
             }
 
@@ -5003,28 +5007,50 @@ static void decodes1(const unsigned char rxb[], uint32_t rxb_len,
             pressure = (pabits * 2) / 100.0;
 
             if (haveGPS) {
-                uint32_t sel = readbitss1(rxbuf, &startpos, 2);
-                if (sel == 3) {
-                    sel = 2*sel + readbitss1(rxbuf, &startpos, 1);
-                    if (sel == 6) {
-                        uint32_t altbits = readbitss1(rxbuf, &startpos, 14);
-                        alt = altbits;
+                int haveSPDANG = readbitss1(rxbuf, &startpos, 1);
+                if (haveSPDANG) {
+                    if (readbitss1(rxbuf, &startpos, 1) == 1) {
+                        if (readbitss1(rxbuf, &startpos, 1) == 0) {
+                            /* Bit field contains altitude in meters */
+                            alt = readbitss1(rxbuf, &startpos, 14);
+                        }
+                        else {
+                            /* Don't know how to interpret */
+                            return;
+                        }
                     }
-                }
-                if ((sel == 2) || (sel == 6)) {
+
                     uint32_t speedbits = readbitss1(rxbuf, &startpos, 11);  // spd
                     kmh = speedbits * 0.18;
                     uint32_t dirbits = readbitss1(rxbuf, &startpos, 12);   // ang
                     dir = dirbits / 10.0;
+                }
+                else {
+                    if (readbitss1(rxbuf, &startpos, 1) != 0) {
+                        /* Don't know how to interpret */
+                        return;
+                    }
+                }
 
-                    int havePOS = 0;
+                /* The next bit indicates the presence of a yet unknown eight bit field */
+                if (readbitss1(rxbuf, &startpos, 1) == 1) {
+                    readbitss1(rxbuf, &startpos, 8);
+                }
 
-                    sel = readbitss1(rxbuf, &startpos, 3);
+                int havePOS = 0;
 
-                    if ((sel == 1) && (systime - pc->pos_time < 20)) {
-                        int32_t lat_delta14 = readbitss1(rxbuf, &startpos, 14);
-                        int32_t lon_delta14 = readbitss1(rxbuf, &startpos, 14);
+                int lat_lon_format = readbitss1(rxbuf, &startpos, 2);
 
+                if (lat_lon_format == 0) {
+                    /* TODO: unknown format. 20 bits? */
+                    readbitss1(rxbuf, &startpos, 20);
+                }
+
+                if (lat_lon_format == 1) {
+                    int32_t lat_delta14 = readbitss1(rxbuf, &startpos, 14);
+                    int32_t lon_delta14 = readbitss1(rxbuf, &startpos, 14);
+
+                    if (systime - pc->pos_time < 20) {
                         if ((lat_delta14 < 10000) && (lon_delta14 < 10000)) {
                             int32_t lat_delta_ref = pc->lat_ref % 10000;
                             if (abs(lat_delta14 - lat_delta_ref) >= 5000) {
@@ -5041,11 +5067,13 @@ static void decodes1(const unsigned char rxb[], uint32_t rxb_len,
                             havePOS = 1;
                         }
                     }
+                }
 
-                    if ((sel == 2) && (systime - pc->pos_time < 30)) {
-                        int32_t lat_delta20 = readbitss1(rxbuf, &startpos, 20);
-                        int32_t lon_delta20 = readbitss1(rxbuf, &startpos, 20);
+                if (lat_lon_format == 2) {
+                    int32_t lat_delta20 = readbitss1(rxbuf, &startpos, 20);
+                    int32_t lon_delta20 = readbitss1(rxbuf, &startpos, 20);
 
+                    if (systime - pc->pos_time < 30) {
                         if ((lat_delta20 < 1000000) && (lon_delta20 < 1000000)) {
                             int32_t lat_delta_ref = pc->lat_ref % 1000000;
                             if (abs(lat_delta20 - lat_delta_ref) >= 500000) {
@@ -5061,25 +5089,64 @@ static void decodes1(const unsigned char rxb[], uint32_t rxb_len,
                             havePOS = 1;
                         }
                     }
+                }
 
-                    if (sel == 3) {
-                        pc->lat_ref = readbitss1(rxbuf, &startpos, 28);
-                        pc->lon_ref = readbitss1(rxbuf, &startpos, 29);
-                        havePOS = 1;
-                    }
+                if (lat_lon_format == 3) {
+                    pc->lat_ref = readbitss1(rxbuf, &startpos, 28);
+                    pc->lon_ref = readbitss1(rxbuf, &startpos, 29);
+                    havePOS = 1;
+                }
 
-                    if (havePOS) {
-                        pc->pos_time = systime;
+                if (havePOS) {
+                    pc->pos_time = systime;
 
-                        uint32_t latdeg = (pc->lat_ref - 90000000ul) / 1000000ul;
-                        double latmin = (pc->lat_ref - 90000000ul - 1e6*latdeg) / 10000.0;
-                        lat = (latdeg + latmin / 60.0) * (M_PI / 180.0);
+                    uint32_t latdeg = (pc->lat_ref - 90000000ul) / 1000000ul;
+                    double latmin = (pc->lat_ref - 90000000ul - 1e6*latdeg) / 10000.0;
+                    lat = (latdeg + latmin / 60.0) * (M_PI / 180.0);
 
-                        uint32_t londeg = (pc->lon_ref - 180000000ul) / 1000000ul;
-                        double lonmin = (pc->lon_ref - 180000000ul - 1e6*londeg) / 10000.0;
-                        lon = (londeg + lonmin / 60.0) * (M_PI / 180.0);
+                    uint32_t londeg = (pc->lon_ref - 180000000ul) / 1000000ul;
+                    double lonmin = (pc->lon_ref - 180000000ul - 1e6*londeg) / 10000.0;
+                    lon = (londeg + lonmin / 60.0) * (M_PI / 180.0);
+                }
+            }
+
+            if (haveXXX) {
+                /* unknown */
+                readbitss1(rxbuf, &startpos, 12);
+            }
+
+            if (haveHIST) {
+                /* Read PTU/GPS history */
+                if (haveGPS) {
+                    readbitss1(rxbuf, &startpos, 8);    /* spd1 */
+                    readbitss1(rxbuf, &startpos, 12);   /* ang1 */
+                    readbitss1(rxbuf, &startpos, 8);    /* te1 */
+                    readbitss1(rxbuf, &startpos, 8);    /* hum1? */
+                    if (readbitss1(rxbuf, &startpos, 1) == 1) {
+                        readbitss1(rxbuf, &startpos, 8);    /* spd2 */
+                        readbitss1(rxbuf, &startpos, 12);   /* ang2 */
+                        readbitss1(rxbuf, &startpos, 8);    /* te2*/
+                        readbitss1(rxbuf, &startpos, 8);    /* hum2? */
+                        readbitss1(rxbuf, &startpos, 1);
                     }
                 }
+                else {
+                    readbitss1(rxbuf, &startpos, 8);    /* te1 */
+                    if (haveHUM) {
+                        readbitss1(rxbuf, &startpos, 8);    /* hum1? */
+                    }
+                    if (readbitss1(rxbuf, &startpos, 1) == 1) {
+                        readbitss1(rxbuf, &startpos, 8);    /* te2 */
+                        if (haveHUM) {
+                            readbitss1(rxbuf, &startpos, 8);    /* hum2? */
+                        }
+                        readbitss1(rxbuf, &startpos, 1);
+                    }
+                }
+            }
+
+            if (haveEXTRA) {
+                /* Parse extra parameters */
             }
 
             if (sondeaprs_verb) {

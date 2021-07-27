@@ -6301,7 +6301,7 @@ static void shows1(uint32_t m, uint32_t state, uint32_t repaired,
       WrQuali(noiselevel(chan[m].s1.bitlev, chan[m].s1.noise));
       osi_WrStrLn("", 1ul);
    }
-} /* end showmp3() */
+} /* end shows1() */
 
 
 static void decodeframes1(uint32_t m, const char buf[],

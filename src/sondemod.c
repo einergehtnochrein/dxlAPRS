@@ -4863,6 +4863,7 @@ static void decodes1(const unsigned char rxb[], uint32_t rxb_len,
     alt = 0;
     clb = 0;
     kmh = 0;
+    temperature = NAN;
 
 
     getcall(rxb, rxb_len, usercall, 11ul);
@@ -4871,8 +4872,8 @@ static void decodes1(const unsigned char rxb[], uint32_t rxb_len,
     }
     if (sondeaprs_verb && fromport>0UL) {
         osi_WrStr("UDP:", 5ul);
-        aprsstr_ipv4tostr(ip, s, 101ul);
-        osi_WrStr(s, 101ul);
+        aprsstr_ipv4tostr(ip, s, sizeof(s));
+        osi_WrStr(s, sizeof(s));
         osi_WrStr(":", 2ul);
         osic_WrINT32(fromport, 1UL);
         if (usercall[0U]) {

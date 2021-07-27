@@ -4865,47 +4865,42 @@ static void decodes1_extra(const unsigned char rxbuf[], int *pstartpos, pCONTEXT
     while (scan) {
         /* Read next opcode and look it up */
         uint32_t opcode = readbitss1(rxbuf, pstartpos, 5);
-        int found = 0;
+        /* Determine length of value field */
+        uint32_t field_length = 0;
+        uint32_t format = readbitss1(rxbuf, pstartpos, 2);
+        if (format == 0) {
+            field_length = 4;
+        }
+        else if (format == 1) {
+            field_length = 8;
+            if (readbitss1(rxbuf, pstartpos, 1) == 1) {
+                field_length = 12;
+            }
+        }
+        else if (format == 2) {
+            field_length = 16;
+            if (readbitss1(rxbuf, pstartpos, 1) == 1) {
+                /* Parsing error */
+                field_length = 0;
+            }
+        }
+        /* Read value field */
+        uint32_t value = 0;
+        if (field_length > 0) {
+            value = readbitss1(rxbuf, pstartpos, field_length);
+        }
+        /* Check if further parameters follow */
+        scan = readbitss1(rxbuf, pstartpos, 1);
+
         for (int i = 0; i < cmd_list_size; i++) {
             if (opcode == cmd_list[i].opcode) {
-                uint32_t field_length = 0;
-                /* Read format bits (2 or 3) which determine size of value field */
-                uint32_t format = readbitss1(rxbuf, pstartpos, 2);
-                if (format == 0) {
-                    field_length = 4;
-                }
-                else if (format == 1) {
-                    field_length = 8;
-                    if (readbitss1(rxbuf, pstartpos, 1) == 1) {
-                        field_length = 12;
-                    }
-                }
-                else if (format == 2) {
-                    field_length = 16;
-                    if (readbitss1(rxbuf, pstartpos, 1) == 1) {
-                        /* Parsing error */
-                        field_length = 0;
-                    }
-                }
-
                 if (field_length > 0) {
-                    /* Read value field */
-                    uint32_t value = readbitss1(rxbuf, pstartpos, field_length);
-                    /* Check if further parameters follow */
-                    scan = readbitss1(rxbuf, pstartpos, 1);
-
                     /* Process this parameter */
-                    found = 1;
                     //TODO
                     if (opcode == 0x01) {
                         aprsstr_CardToStr(value, 1, pc->ser, sizeof(pc->ser));
                     }
                 }
-            }
-
-            /* Stop if opcode was not identified */
-            if (!found) {
-                scan = 0;
             }
         }
     }

@@ -4837,6 +4837,81 @@ static uint32_t readbitss1 (const unsigned char rxbuf[], int *startpos, int n)
 }
 
 
+static void decodes1_extra(const unsigned char rxbuf[], int *pstartpos, pCONTEXTS1 pc)
+{
+    const struct _s1_extra_cmds {
+        char *key;
+        uint32_t opcode;
+    } cmd_list[] = {
+        {.key = "id",       .opcode = 0x01},
+        {.key = "behlan",   .opcode = 0x04},
+        {.key = "role",     .opcode = 0x06},
+        {.key = "clk",      .opcode = 0x07},
+        {.key = "su",       .opcode = 0x09},
+        {.key = "pwr",      .opcode = 0x0C},
+        {.key = "fwver",    .opcode = 0x0D},
+        {.key = "mcnt",     .opcode = 0x0E},
+        {.key = "cutalt",   .opcode = 0x0F},
+        {.key = "cutpr2",   .opcode = 0x10},
+        {.key = "supmul",   .opcode = 0x11},
+        {.key = "gpa",      .opcode = 0x12},
+        {.key = "galt",     .opcode = 0x13},
+        {.key = "hw",       .opcode = 0x14},
+        {.key = "ucnt",     .opcode = 0x16},
+    };
+    const int cmd_list_size = sizeof(cmd_list) / sizeof(cmd_list[0]);
+
+    int scan = 1;
+    while (scan) {
+        /* Read next opcode and look it up */
+        uint32_t opcode = readbitss1(rxbuf, pstartpos, 5);
+        int found = 0;
+        for (int i = 0; i < cmd_list_size; i++) {
+            if (opcode == cmd_list[i].opcode) {
+                uint32_t field_length = 0;
+                /* Read format bits (2 or 3) which determine size of value field */
+                uint32_t format = readbitss1(rxbuf, pstartpos, 2);
+                if (format == 0) {
+                    field_length = 4;
+                }
+                else if (format == 1) {
+                    field_length = 8;
+                    if (readbitss1(rxbuf, pstartpos, 1) == 1) {
+                        field_length = 12;
+                    }
+                }
+                else if (format == 2) {
+                    field_length = 16;
+                    if (readbitss1(rxbuf, pstartpos, 1) == 1) {
+                        /* Parsing error */
+                        field_length = 0;
+                    }
+                }
+
+                if (field_length > 0) {
+                    /* Read value field */
+                    uint32_t value = readbitss1(rxbuf, pstartpos, field_length);
+                    /* Check if further parameters follow */
+                    scan = readbitss1(rxbuf, pstartpos, 1);
+
+                    /* Process this parameter */
+                    found = 1;
+                    //TODO
+                    if (opcode == 0x01) {
+                        aprsstr_CardToStr(value, 1, pc->ser, sizeof(pc->ser));
+                    }
+                }
+            }
+
+            /* Stop if opcode was not identified */
+            if (!found) {
+                scan = 0;
+            }
+        }
+    }
+}
+
+
 static void decodes1(const unsigned char rxb[], uint32_t rxb_len,
                 uint32_t ip, uint32_t fromport)
 {
@@ -5148,6 +5223,7 @@ static void decodes1(const unsigned char rxb[], uint32_t rxb_len,
 
             if (haveEXTRA) {
                 /* Parse extra parameters */
+                decodes1_extra(rxbuf, &startpos, pc);
             }
 
             if (sondeaprs_verb) {

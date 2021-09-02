@@ -368,6 +368,12 @@ struct CONTEXTS1 {
     int32_t lat_ref;
     int32_t lon_ref;
     uint32_t pos_time;
+
+    double ground_pressure;
+    double ground_altitude;
+    double ref_temperature;
+
+    double vbat;
 };
 
 struct DFMTYPES;
@@ -4900,6 +4906,15 @@ static void decodes1_extra(const unsigned char rxbuf[], int *pstartpos, pCONTEXT
                     if (opcode == 0x01) {
                         aprsstr_CardToStr(value, 1, pc->ser, sizeof(pc->ser));
                     }
+                    if (opcode == 0x09) {
+                        pc->vbat = 2.56 + value / 100.0;
+                    }
+                    if (opcode == 0x12) {
+                        pc->ground_pressure = 1100.0 - value / 50.0;
+                    }
+                    if (opcode == 0x13) {
+                        pc->ground_altitude = value;
+                    }
                 }
             }
         }
@@ -5017,6 +5032,9 @@ static void decodes1(const unsigned char rxb[], uint32_t rxb_len,
                 aprsstr_Assign(pc->name, 9ul, nam, 9ul);
                 pc->id = -1;
                 pc->sid = -1;
+                pc->ground_altitude = NAN;
+                pc->ground_pressure = NAN;
+                pc->ref_temperature = NAN;
                 if (sondeaprs_verb) {
                     osi_WrStrLn("is new ", 8ul);
                 }
@@ -5245,7 +5263,7 @@ static void decodes1(const unsigned char rxb[], uint32_t rxb_len,
                 0.0, (double)X2C_max_real, temperature,
                 0.0, 0.0, 0.0, 0.0,
                 (double) -(float)(uint32_t)sendmhzfromsdr, 0.0,
-                0.0, 0, 0UL, pc->name, 9ul, 0UL, 0, 0UL, 0.0,
+                0.0, 0, 0UL, pc->name, 9ul, 0UL, 0, 0UL, pc->vbat,
                 usercall, 11ul, 0UL, pressure,
                 sondeaprs_nofilter, 1, 0L, "S1", 4ul, pc->ser, 21ul,
                 sdrblock);

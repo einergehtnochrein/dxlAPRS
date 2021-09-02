@@ -4895,6 +4895,10 @@ static void decodes1_extra(const unsigned char rxbuf[], int *pstartpos, pCONTEXT
         if (field_length > 0) {
             value = readbitss1(rxbuf, pstartpos, field_length);
         }
+        else {
+            /* Parsing error */
+            return;
+        }
         /* Check if further parameters follow */
         scan = readbitss1(rxbuf, pstartpos, 1);
 
@@ -5069,6 +5073,8 @@ static void decodes1(const unsigned char rxb[], uint32_t rxb_len,
             if ((rxbuf[0] == 0x04) || (rxbuf[0] == 0x3E) || (rxbuf[0] == 0x45)) {
                 haveHUM = 1;
             }
+            int haveBASE1 = rxbuf[3] != 0;
+            int haveBASE2 = (rxbuf[3] & 0xF0) != 0;
             int haveGPS = (rxbuf[3] >> 7) & 1;
             int haveXXX = (rxbuf[3] >> 6) & 1;
             int haveHIST = (rxbuf[3] >> 5) & 1;
@@ -5076,49 +5082,64 @@ static void decodes1(const unsigned char rxb[], uint32_t rxb_len,
 
             readbitss1(rxbuf, &startpos, 4);  // probably "md"
 
-            int32_t tebits = readbitss1(rxbuf, &startpos, 14);
-            temperature = -10.0 + (tebits - 8192) / 100.0;
+            if (haveBASE1) {
+                int32_t tebits = readbitss1(rxbuf, &startpos, 14);
+                temperature = -10.0 + (tebits - 8192) / 100.0;
 
-            dummy = readbitss1(rxbuf, &startpos, 2);
-            if (dummy == 1) {
-                dummy = readbitss1(rxbuf, &startpos, 1);
-                int val8 = readbitss1(rxbuf, &startpos, 8);
+                dummy = readbitss1(rxbuf, &startpos, 2);
                 if (dummy == 1) {
-                    // tei?
+                    dummy = readbitss1(rxbuf, &startpos, 1);
+                    int val8 = readbitss1(rxbuf, &startpos, 8);
+                    if (dummy == 1) {
+                        // tei?
+                    }
+                }
+
+                if (haveHUM) {
+                    readbitss1(rxbuf, &startpos, 11);  // ?
                 }
             }
 
-            if (haveHUM) {
-                readbitss1(rxbuf, &startpos, 11);  // ?
+            if (haveBASE2) {
+                uint32_t pabits = readbitss1(rxbuf, &startpos, 16);
+                pressure = (pabits * 2) / 100.0;
             }
-
-            uint32_t pabits = readbitss1(rxbuf, &startpos, 16);
-            pressure = (pabits * 2) / 100.0;
 
             if (haveGPS) {
                 int haveSPDANG = readbitss1(rxbuf, &startpos, 1);
-                if (haveSPDANG) {
-                    if (readbitss1(rxbuf, &startpos, 1) == 1) {
-                        if (readbitss1(rxbuf, &startpos, 1) == 0) {
-                            /* Bit field contains altitude in meters */
-                            alt = readbitss1(rxbuf, &startpos, 14);
-                        }
-                        else {
-                            /* Don't know how to interpret */
-                            return;
+
+                if (readbitss1(rxbuf, &startpos, 1) == 1) {
+                    if (readbitss1(rxbuf, &startpos, 1) == 0) {
+                        /* Bit field contains altitude in meters */
+                        alt = readbitss1(rxbuf, &startpos, 14);
+
+                        /* Update ref_temperature for coming altitude estimates */
+                        if (!isnan(pc->ground_altitude) && !isnan(pc->ground_pressure)) {
+                            if (pressure < pc->ground_pressure - 8) {  //TODO...
+                                pc->ref_temperature = (0.0065 * (alt - pc->ground_altitude))
+                                                    / (1.0 - pow(pressure / pc->ground_pressure, 1 / 5.255));
+                            }
                         }
                     }
+                    else {
+                        /* Don't know how to interpret */
+                        return;
+                    }
+                }
 
+                /* Can/should we estimate the altitude? */
+                if (alt == 0) {  //TODO: preset "alt" with invalid value
+                    if (!isnan(pc->ground_altitude) && !isnan(pc->ground_pressure) && !isnan(pc->ref_temperature)) {
+                        alt = pc->ground_altitude
+                            + ((1.0 - pow(pressure / pc->ground_pressure, 1 / 5.255)) * pc->ref_temperature) / 0.0065;
+                    }
+                }
+
+                if (haveSPDANG) {
                     uint32_t speedbits = readbitss1(rxbuf, &startpos, 11);  // spd
                     kmh = speedbits * 0.18;
                     uint32_t dirbits = readbitss1(rxbuf, &startpos, 12);   // ang
                     dir = dirbits / 10.0;
-                }
-                else {
-                    if (readbitss1(rxbuf, &startpos, 1) != 0) {
-                        /* Don't know how to interpret */
-                        return;
-                    }
                 }
 
                 /* The next bit indicates the presence of a yet unknown eight bit field */

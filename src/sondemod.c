@@ -5591,7 +5591,7 @@ static void decodes1(const unsigned char rxb[], uint32_t rxb_len,
                 usercall, 11ul,
                 0UL, pressure, sondeaprs_nofilter,
                 1, 0L, "S1",
-                4ul, pc->ser,
+                3ul, pc->ser,
                 21ul, NULL,
                 sdrblock);
         pc->framesent = 1;

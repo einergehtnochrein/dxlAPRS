@@ -5233,6 +5233,7 @@ static void decodes1(const unsigned char rxb[], uint32_t rxb_len,
     double lon;
     double lat;
     double temperature;
+    double humidity;
     double pressure;
    char s[101];
     OBJNAME nam;
@@ -5249,6 +5250,7 @@ static void decodes1(const unsigned char rxb[], uint32_t rxb_len,
     clb = (double)X2C_max_real;
     kmh = 0;
     temperature = (double)X2C_max_real;
+    humidity = (double)X2C_max_real;
     pressure = (double)X2C_max_real;
 
     getcall(rxb, rxb_len, usercall, 11ul);
@@ -5392,7 +5394,7 @@ static void decodes1(const unsigned char rxb[], uint32_t rxb_len,
                 }
 
                 if (haveHUM) {
-                    readbitss1(rxbuf, &startpos, 11);  // ?
+                    humidity = 0.05 * readbitss1(rxbuf, &startpos, 11);
                 }
             }
 
@@ -5579,7 +5581,7 @@ static void decodes1(const unsigned char rxb[], uint32_t rxb_len,
         sondeaprs_senddata(
                 lat, lon,
                 alt, kmh*2.7777777777778E-1, dir,
-                clb, 0.0, (double)X2C_max_real,
+                clb, 0.0, humidity,
                 temperature, 0.0, 0.0,
                 0.0, 0.0, (double) -(float)(uint32_t)sendmhzfromsdr,
                 0.0, 0.0, 0,

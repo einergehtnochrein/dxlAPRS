@@ -1195,7 +1195,7 @@ static void Config(void)
       { /* with */
          struct S1 * anonym7 = &chan[c].s1;
          anonym7->configbaud = 2400UL;
-         anonym7->demodbaud = (2UL*anonym6->configbaud*65536UL)/adcrate;
+         anonym7->demodbaud = (2UL*anonym7->configbaud*65536UL)/adcrate;
          initafir(anonym7->afirtab, 0UL, 1900UL,
                 X2C_DIVR((float)chan[c].configequalizer,100.0f));
          anonym7->baudfine = 0L;

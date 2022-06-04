@@ -5576,13 +5576,21 @@ static void decodes1(const unsigned char rxb[], uint32_t rxb_len,
     }
 
     if ((pc && nameok) && (lat != 0.0) && (lon != 0.0)) {
-        sondeaprs_senddata(lat, lon, alt, kmh*2.7777777777778E-1, dir, clb,
-                0.0, (double)X2C_max_real, temperature,
-                0.0, 0.0, 0.0, 0.0,
-                (double) -(float)(uint32_t)sendmhzfromsdr, 0.0,
-                0.0, 0, 0UL, pc->name, 9ul, 0UL, 0, 0UL, pc->vbat,
-                usercall, 11ul, 0UL, pressure,
-                sondeaprs_nofilter, 1, 0L, "S1", 4ul, pc->ser, 21ul,
+        sondeaprs_senddata(
+                lat, lon,
+                alt, kmh*2.7777777777778E-1, dir,
+                clb, 0.0, (double)X2C_max_real,
+                temperature, 0.0, 0.0,
+                0.0, 0.0, (double) -(float)(uint32_t)sendmhzfromsdr,
+                0.0, 0.0, 0,
+                0UL, pc->name,
+                9ul, 0UL,
+                0, 0UL, pc->vbat,
+                usercall, 11ul,
+                0UL, pressure, sondeaprs_nofilter,
+                1, 0L, "S1",
+                4ul, pc->ser,
+                21ul, NULL,
                 sdrblock);
         pc->framesent = 1;
     }

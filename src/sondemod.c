@@ -5709,7 +5709,7 @@ static void udprx(void)
             decodemeisei(chan[sondemod_LEFT].rxbuf, 560ul, ip, fromport);
             break;
          }
-         if (len==52) {  //TODO must be different from MEISEI
+         if (len==53L) {  //NOTE must be different from MEISEI. Real length is 52!
             decodes1((const unsigned char *)chan[sondemod_LEFT].rxbuf, 560ul, ip, fromport);
             break;
          }

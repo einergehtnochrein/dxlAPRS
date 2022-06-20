@@ -6938,7 +6938,7 @@ static void decodeframes1(uint32_t m, const char buf[],
             for (i = 0UL; i<buf_len; i++) {
                 s[i+20UL] = buf[i]; /* payload */
             } /* end for */
-            flen = 20u+buf_len;
+            flen = 20u+buf_len+1u;  //NOTE: The '+1' makes the length (53) different from the MEISEI decoder (52)
             sdrparm(s, sizeof(s), &flen, (int32_t)m);
             alludp(chan[m].udptx, flen, s, sizeof(s));
         }
